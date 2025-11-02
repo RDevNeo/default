@@ -1,0 +1,6 @@
+return {
+
+	AssetTypes = {
+		EmoteAnimation = "EmoteAnimation",
+	},
+}
