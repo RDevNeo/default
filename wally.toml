@@ -9,4 +9,5 @@ Knit = "sleitnick/knit@^1.7"
 Comm = "sleitnick/comm@1.0.1"
 ReactRoblox = "jsdotlua/react-roblox@17.2.1"
 React = "jsdotlua/react@17.2.1"
+Signal = "sleitnick/signal@^1"
 

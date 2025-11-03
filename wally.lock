@@ -5,7 +5,7 @@ registry = "test"
 [[package]]
 name = "default/project"
 version = "0.1.0"
-dependencies = [["Comm", "sleitnick/comm@1.0.1"], ["Knit", "sleitnick/knit@1.7.0"], ["React", "jsdotlua/react@17.2.1"], ["ReactRoblox", "jsdotlua/react-roblox@17.2.1"]]
+dependencies = [["Comm", "sleitnick/comm@1.0.1"], ["Knit", "sleitnick/knit@1.7.0"], ["React", "jsdotlua/react@17.2.1"], ["ReactRoblox", "jsdotlua/react-roblox@17.2.1"], ["Signal", "sleitnick/signal@1.5.0"]]
 
 [[package]]
 name = "evaera/promise"
@@ -110,6 +110,11 @@ dependencies = [["Comm", "sleitnick/comm@1.0.1"], ["Promise", "evaera/promise@4.
 [[package]]
 name = "sleitnick/option"
 version = "1.0.5"
+dependencies = []
+
+[[package]]
+name = "sleitnick/signal"
+version = "1.5.0"
 dependencies = []
 
 [[package]]

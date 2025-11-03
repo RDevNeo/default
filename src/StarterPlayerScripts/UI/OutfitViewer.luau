@@ -1,22 +1,19 @@
 -- Services
 local CollectionService = game:GetService("CollectionService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
-local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 -- Dependencies
 local React = require(ReplicatedStorage.Packages.React)
-local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 
--- Variables
-local screenGui = Instance.new("ScreenGui", PlayerGui)
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-local root = ReactRoblox.createRoot(screenGui)
+-- Context
+local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
+
+-- Color
+local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 
 -- Cache for product info to avoid repeated API calls
 local productInfoCache: { [number]: any } = {}
@@ -34,11 +31,11 @@ end
 
 local function createScrollingFrame(props: {
 	ids: { number },
-	textColor: Color3,
-	secondaryColor: Color3,
 	setTotalCost: (number) -> number,
 	setCurrent: (number?) -> number?,
 	current: number?,
+	hovered: number?,
+	setHovered: (number?) -> number?,
 })
 	local productInfos, setProductInfos = React.useState({} :: { [number]: any })
 	local _isLoading, setIsLoading = React.useState(true)
@@ -119,14 +116,13 @@ local function createScrollingFrame(props: {
 	local children = React.useMemo(function()
 		local childElements = {
 			React.createElement("UIGridLayout", {
-				CellSize = UDim2.fromScale(0.2, 0.3),
-				CellPadding = UDim2.fromScale(0.05, 0.05),
+				CellSize = UDim2.fromScale(0.25, 0.25),
+				CellPadding = UDim2.fromScale(0, 0.05),
 				FillDirectionMaxCells = 4,
 			}),
 			React.createElement("UIPadding", {
 				PaddingTop = UDim.new(0.02, 0),
-				PaddingLeft = UDim.new(0.02, 0),
-				PaddingBottom = UDim.new(0.02, 0),
+				PaddingRight = UDim.new(0.05, 0),
 			}),
 		}
 
@@ -134,186 +130,207 @@ local function createScrollingFrame(props: {
 			for index, id in pairs(props.ids) do
 				local assetInfo = productInfos[id]
 				if assetInfo and assetInfo.IsForSale then
-					childElements["OutfitButton" .. id] = React.createElement("TextButton", {
-						Text = "",
+					childElements["OutfitButton" .. id] = React.createElement("Frame", {
 						Name = "OutfitViewerFrame" .. tostring(id),
-						BackgroundColor3 = Color3.fromRGB(163, 162, 165),
-						BackgroundTransparency = 0.9,
-
-						[React.Event.Activated] = function(instance: TextButton)
-							if props.current == id then
-								props.setCurrent(nil)
-							else
-								props.setCurrent(id)
-							end
-						end,
+						BackgroundTransparency = 1,
 					}, {
-						OutfitImage = React.createElement("ImageLabel", {
-							Name = "OutfitImage",
-							Position = UDim2.fromScale(0.5, 0.5),
+
+						React.createElement("UIAspectRatioConstraint"),
+
+						ShowInfo = React.createElement("TextButton", {
+							Size = UDim2.fromScale(0.8, 0.8),
 							AnchorPoint = Vector2.new(0.5, 0.5),
-							Size = UDim2.fromScale(0.85, 0.85),
-							BackgroundTransparency = 1,
-							Image = string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", id),
-							ZIndex = 1,
+							Position = UDim2.fromScale(0.5, 0.43),
+							BackgroundTransparency = 0.9,
+							BackgroundColor3 = Colors.backgroundColor,
+							Text = "",
+							LayoutOrder = 1,
+
+							[React.Event.MouseEnter] = function(instance: TextButton)
+								if props.current ~= id then
+									props.setHovered(id)
+								end
+							end,
+
+							[React.Event.MouseLeave] = function(instance: TextButton)
+								if props.current ~= id then
+									props.setHovered(nil)
+								end
+							end,
+
+							[React.Event.Activated] = function(instance: TextButton)
+								if props.current == id then
+									props.setCurrent(nil)
+								else
+									props.setCurrent(id)
+
+									if props.setHovered then
+										props.setHovered(nil)
+									end
+								end
+							end,
+						}, {
+							OutfitImage = React.createElement("ImageLabel", {
+								Name = "OutfitImage",
+								Position = UDim2.fromScale(0.5, 0.5),
+								AnchorPoint = Vector2.new(0.5, 0.5),
+								Size = UDim2.fromScale(1, 1),
+								BackgroundTransparency = 1,
+								Image = string.format("rbxthumb://type=Asset&id=%d&w=150&h=150", id),
+								ZIndex = 1,
+							}, {
+								React.createElement("UIAspectRatioConstraint"),
+							}),
+
+							Corner = React.createElement("UICorner", {
+								CornerRadius = UDim.new(0.1, 0),
+							}),
+
+							Stroke = React.createElement("UIStroke", {
+								Thickness = 2,
+								ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+								Color = Colors.accentColor,
+							}),
+
+							React.createElement("UIAspectRatioConstraint"),
+
+							props.current == id and React.createElement("Frame", {
+								Name = "ButtonsHolder",
+								Size = UDim2.fromScale(1, 1),
+								BackgroundTransparency = 1,
+							}, {
+
+								BuyAccessory = React.createElement("TextButton", {
+									Name = "BuyButton" .. id,
+									BackgroundColor3 = Color3.fromRGB(54, 187, 21),
+									Position = UDim2.fromScale(0.35, 0.28),
+									Size = UDim2.fromScale(0.62, 0.25),
+									Text = "BUY",
+									TextColor3 = Color3.fromRGB(48, 48, 48),
+									TextScaled = true,
+									Font = Enum.Font.FredokaOne,
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
+
+									[React.Event.Activated] = function(instance)
+										Signals.BuyAccessory:Fire(id)
+									end,
+								}, {
+
+									React.createElement("UICorner"),
+								}),
+
+								Try = React.createElement("TextButton", {
+									Name = "TryButton" .. id,
+									BackgroundColor3 = Color3.fromRGB(54, 187, 21),
+									Position = UDim2.fromScale(0.35, 0.65),
+									Size = UDim2.fromScale(0.62, 0.25),
+									Text = "TRY",
+									TextColor3 = Color3.fromRGB(48, 48, 48),
+									TextScaled = true,
+									Font = Enum.Font.FredokaOne,
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
+
+									[React.Event.Activated] = function(instance)
+										Signals.TryAccessory:Fire(id)
+									end,
+								}, {
+
+									React.createElement("UICorner"),
+								}),
+
+								AddToCart = React.createElement("TextButton", {
+									Name = "AddToCartButton" .. id,
+									BackgroundColor3 = Color3.fromRGB(156, 156, 156),
+									Position = UDim2.fromScale(0.83, 0.5),
+									Size = UDim2.fromScale(0.25, 0.25),
+									Text = "Cart",
+									TextColor3 = Color3.fromRGB(48, 48, 48),
+									TextScaled = true,
+									Font = Enum.Font.FredokaOne,
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
+
+									[React.Event.Activated] = function(instance)
+										Signals.AddToCart:Fire(id)
+									end,
+								}, {
+
+									React.createElement("UICorner"),
+								}),
+
+								BackgroundFade = React.createElement("Frame", {
+									Name = "Background",
+									ZIndex = 1,
+									Size = UDim2.fromScale(1, 1),
+								}, {
+									Corner = React.createElement("UICorner", {
+										CornerRadius = UDim.new(0.1, 0),
+									}),
+
+									React.createElement("UIGradient", {
+										Rotation = 90,
+										Color = ColorSequence.new({
+											ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+											ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0)),
+										}),
+										Transparency = NumberSequence.new({
+											NumberSequenceKeypoint.new(0, 1),
+											NumberSequenceKeypoint.new(0.333, 0.840),
+											NumberSequenceKeypoint.new(0.647, 0.440),
+											NumberSequenceKeypoint.new(1, 0.175),
+										}),
+									}),
+								}),
+							}),
+
+							props.hovered == id and React.createElement("ImageButton", {
+								Size = UDim2.fromScale(0.3, 0.3),
+								BackgroundTransparency = 1,
+								Image = "rbxassetid://97542709722551",
+
+								[React.Event.MouseEnter] = function(instance: ImageButton)
+									instance.ImageColor3 = Color3.fromRGB(255, 170, 0)
+								end,
+
+								[React.Event.MouseLeave] = function(instance: ImageButton)
+									instance.ImageColor3 = Color3.fromRGB(255, 255, 255)
+								end,
+
+								[React.Event.Activated] = function(instance: ImageButton)
+									Signals.LikeAccessory:Fire(id)
+									instance.ImageColor3 = Color3.fromRGB(255, 170, 0)
+								end,
+							}),
 						}),
 
 						OutfitName = React.createElement("TextLabel", {
 							Name = "OutfitName",
-							Size = UDim2.fromScale(0.95, 0.15),
-							Position = UDim2.fromScale(0.5, 0.02),
+							Size = UDim2.fromScale(0.8, 0.21),
+							Position = UDim2.fromScale(0.5, 0.83),
 							BackgroundTransparency = 1,
 							Font = Enum.Font.FredokaOne,
 							Text = assetInfo.Name or "Loading...",
-							TextColor3 = props.textColor,
+							TextColor3 = Colors.textColor,
 							TextScaled = true,
-							ZIndex = 2,
+							LayoutOrder = 2,
 							AnchorPoint = Vector2.new(0.5, 0),
+							TextXAlignment = Enum.TextXAlignment.Left,
 						}),
 
 						OutfitPrice = React.createElement("TextLabel", {
 							Name = "OutfitPrice",
-							Size = UDim2.fromScale(1, 0.15),
-							Position = UDim2.fromScale(0.5, 0.82),
+							Size = UDim2.fromScale(0.8, 0.13),
+							Position = UDim2.fromScale(0.5, 1.04),
 							BackgroundTransparency = 1,
 							Font = Enum.Font.FredokaOne,
-							Text = assetInfo.PriceInRobux .. utf8.char(0xE002),
-							TextColor3 = props.textColor,
+							TextColor3 = Colors.textColor,
+							Text = utf8.char(0xE002) .. assetInfo.PriceInRobux,
 							TextScaled = true,
-							ZIndex = 2,
+							LayoutOrder = 3,
 							AnchorPoint = Vector2.new(0.5, 0),
-						}),
-
-						UIStroke = React.createElement("UIStroke", {
-							Thickness = 3,
-							ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-							Color = props.secondaryColor,
-						}),
-
-						UICorner = React.createElement("UICorner"),
-
-						props.current == id and React.createElement("Frame", {
-							Name = "ButtonsHolder",
-							Size = UDim2.fromScale(1, 1),
-							BackgroundTransparency = 1,
-						}, {
-							UIGridLayout = React.createElement("UIGridLayout", {
-								HorizontalAlignment = Enum.HorizontalAlignment.Center,
-								VerticalAlignment = Enum.VerticalAlignment.Center,
-								FillDirectionMaxCells = 2,
-								FillDirection = Enum.FillDirection.Horizontal,
-								SortOrder = Enum.SortOrder.LayoutOrder,
-								CellSize = UDim2.fromScale(0.27, 0.27),
-								CellPadding = UDim2.fromScale(0.2, 0.07),
-							}),
-
-							BuyAccessory = React.createElement("TextButton", {
-								Name = "BuyButton" .. id,
-								Text = "",
-								BackgroundColor3 = Color3.fromRGB(54, 187, 21),
-								LayoutOrder = 1,
-
-								[React.Event.Activated] = function(instance)
-									Signals.BuyAccessory:Fire(id)
-								end,
-							}, {
-								React.createElement("UIStroke", {
-									ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-									Thickness = 2,
-									Color = Color3.fromRGB(27, 99, 10),
-								}),
-
-								React.createElement("UICorner"),
-
-								React.createElement("ImageLabel", {
-									BackgroundTransparency = 1,
-									Size = UDim2.fromScale(0.8, 0.8),
-									Position = UDim2.fromScale(0.5, 0.5),
-									AnchorPoint = Vector2.new(0.5, 0.5),
-									Image = "rbxassetid://88173809464018",
-								}),
-							}),
-
-							AddToCart = React.createElement("TextButton", {
-								Name = "AddToCart" .. id,
-								Text = "",
-								BackgroundColor3 = Color3.fromRGB(21, 154, 187),
-								LayoutOrder = 2,
-
-								[React.Event.Activated] = function(instance)
-									Signals.AddToCart:Fire(id)
-								end,
-							}, {
-								React.createElement("UIStroke", {
-									ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-									Thickness = 2,
-									Color = Color3.fromRGB(10, 63, 99),
-								}),
-
-								React.createElement("UICorner"),
-
-								React.createElement("ImageLabel", {
-									BackgroundTransparency = 1,
-									Size = UDim2.fromScale(0.8, 0.8),
-									Position = UDim2.fromScale(0.5, 0.5),
-									AnchorPoint = Vector2.new(0.5, 0.5),
-									Image = "rbxassetid://93218144966540",
-								}),
-							}),
-
-							WearAccessory = React.createElement("TextButton", {
-								Name = "WearAccessory" .. id,
-								Text = "",
-								BackgroundColor3 = Color3.fromRGB(132, 17, 167),
-								LayoutOrder = 3,
-
-								[React.Event.Activated] = function(instance)
-									Signals.WearAccessory:Fire(id)
-								end,
-							}, {
-								React.createElement("UIStroke", {
-									ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-									Thickness = 2,
-									Color = Color3.fromRGB(70, 9, 88),
-								}),
-
-								React.createElement("UICorner"),
-
-								React.createElement("ImageLabel", {
-									BackgroundTransparency = 1,
-									Size = UDim2.fromScale(0.8, 0.8),
-									Position = UDim2.fromScale(0.5, 0.5),
-									AnchorPoint = Vector2.new(0.5, 0.5),
-									Image = "rbxassetid://138938975034981",
-								}),
-							}),
-
-							LikeAccessory = React.createElement("TextButton", {
-								Name = "LikeAccessory" .. id,
-								Text = "",
-								BackgroundColor3 = Color3.fromRGB(187, 32, 21),
-								LayoutOrder = 4,
-
-								[React.Event.Activated] = function(instance)
-									Signals.LikeAccessory:Fire(id)
-								end,
-							}, {
-								React.createElement("UIStroke", {
-									ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-									Thickness = 2,
-									Color = Color3.fromRGB(99, 16, 10),
-								}),
-
-								React.createElement("UICorner"),
-
-								React.createElement("ImageLabel", {
-									BackgroundTransparency = 1,
-									Size = UDim2.fromScale(0.8, 0.8),
-									Position = UDim2.fromScale(0.5, 0.5),
-									AnchorPoint = Vector2.new(0.5, 0.5),
-									Image = "rbxassetid://77582976084943",
-								}),
-							}),
+							TextXAlignment = Enum.TextXAlignment.Left,
 						}),
 					})
 				end
@@ -321,7 +338,7 @@ local function createScrollingFrame(props: {
 		end
 
 		return childElements
-	end, { productInfos, props.current, props.textColor, props.secondaryColor, props.ids })
+	end, { productInfos, props.current, props.ids, props.hovered })
 
 	if props.ids then
 		return React.createElement("ScrollingFrame", {
@@ -330,6 +347,8 @@ local function createScrollingFrame(props: {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			CanvasSize = UDim2.fromOffset(0, #props.ids * 70),
 			BackgroundTransparency = 1,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
 		}, children)
 	end
 	return nil
@@ -337,9 +356,6 @@ end
 
 local function OutfitViewer(props: {
 	code: string,
-	primaryColor: Color3,
-	secondaryColor: Color3,
-	textColor: Color3,
 	onClose: () -> (),
 }): Frame?
 	local viewportRef = React.useRef(nil)
@@ -347,6 +363,7 @@ local function OutfitViewer(props: {
 	local ids, setIds = React.useState(nil :: { number }?)
 	local totalCost, setTotalCost = React.useState(0)
 	local current, setCurrent = React.useState(nil :: number?)
+	local hovered, setHovered = React.useState(nil :: number?)
 
 	React.useEffect(function()
 		local viewportFrame = viewportRef.current
@@ -379,17 +396,18 @@ local function OutfitViewer(props: {
 
 	return React.createElement("Frame", {
 		Name = "OutfitViewer",
-		Size = UDim2.fromScale(0.7, 0.7),
+		Size = UDim2.fromScale(0.8, 0.8),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundColor3 = props.primaryColor,
+		BackgroundColor3 = Colors.primaryColor,
 	}, {
 		React.createElement("UICorner", {
-			CornerRadius = UDim.new(0, 10),
+			CornerRadius = UDim.new(0.05, 0),
 		}),
+
 		React.createElement("UIStroke", {
-			Thickness = 5,
-			Color = props.secondaryColor,
+			Thickness = 4,
+			Color = Colors.secondaryColor,
 		}),
 
 		Name = React.createElement("Frame", {
@@ -397,14 +415,10 @@ local function OutfitViewer(props: {
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.fromScale(0.5, -0.06),
 			Size = UDim2.fromScale(0.4, 0.13),
-			BackgroundColor3 = props.primaryColor,
+			BackgroundColor3 = Colors.primaryColor,
 		}, {
 			React.createElement("UICorner", {
-				CornerRadius = UDim.new(0, 10),
-			}),
-			React.createElement("UIStroke", {
-				Thickness = 5,
-				Color = props.secondaryColor,
+				CornerRadius = UDim.new(0.1, 0),
 			}),
 			Title = React.createElement("TextLabel", {
 				BackgroundTransparency = 1,
@@ -413,8 +427,13 @@ local function OutfitViewer(props: {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Size = UDim2.fromScale(1, 1),
 				Text = "Outfit Viewer",
-				TextColor3 = props.textColor,
+				TextColor3 = Colors.textColor,
 				TextScaled = true,
+			}),
+
+			React.createElement("UIStroke", {
+				Thickness = 4,
+				Color = Colors.secondaryColor,
 			}),
 		}),
 
@@ -423,22 +442,27 @@ local function OutfitViewer(props: {
 			Size = UDim2.fromScale(0.04, 0.07),
 			Position = UDim2.fromScale(0.97, 0.02),
 			AnchorPoint = Vector2.new(1, 0),
-			BackgroundColor3 = Color3.fromRGB(220, 53, 69),
+			BackgroundColor3 = Colors.destructiveColor,
 			Text = "X",
-			TextColor3 = props.textColor,
+			TextColor3 = Colors.textColor,
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
 			[React.Event.Activated] = props.onClose,
 		}, {
 			React.createElement("UICorner", {
-				CornerRadius = UDim.new(0, 10),
+				CornerRadius = UDim.new(0.1, 0),
 			}),
 			React.createElement("UIStroke", {
 				Thickness = 3,
-				Color = Color3.fromRGB(139, 33, 43),
+				Color = Color3.new(
+					math.clamp(Colors.destructiveColor.R * 0.5, 0, 1),
+					math.clamp(Colors.destructiveColor.G * 0.5, 0, 1),
+					math.clamp(Colors.destructiveColor.B * 0.5, 0, 1)
+				),
 				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			}),
+			React.createElement("UIAspectRatioConstraint"),
 		}),
 
 		Body = React.createElement("Frame", {
@@ -466,20 +490,20 @@ local function OutfitViewer(props: {
 					Position = UDim2.fromScale(0.5, -0.014),
 					AnchorPoint = Vector2.new(0.5, 0),
 					Size = UDim2.fromScale(0.4, 0.06),
-					BackgroundColor3 = Color3.fromRGB(164, 164, 255),
-					TextColor3 = props.textColor,
+					BackgroundColor3 = Colors.accentColor,
+					TextColor3 = Colors.textColor,
 					ZIndex = 2,
 					TextScaled = true,
 					Text = "99 Likes",
 					Font = Enum.Font.FredokaOne,
 				}, {
 					React.createElement("UICorner", {
-						CornerRadius = UDim.new(0, 10),
+						CornerRadius = UDim.new(0.1, 0),
 					}),
 
 					React.createElement("UIStroke", {
-						Thickness = 5,
-						Color = props.secondaryColor,
+						Thickness = 4,
+						Color = Colors.secondaryColor,
 						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 					}),
 				}),
@@ -493,12 +517,12 @@ local function OutfitViewer(props: {
 					BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				}, {
 					React.createElement("UICorner", {
-						CornerRadius = UDim.new(0, 10),
+						CornerRadius = UDim.new(0.1, 0),
 					}),
 
 					React.createElement("UIStroke", {
-						Thickness = 5,
-						Color = props.secondaryColor,
+						Thickness = 4,
+						Color = Colors.secondaryColor,
 					}),
 
 					React.createElement("UIGradient", {
@@ -525,10 +549,10 @@ local function OutfitViewer(props: {
 					end,
 				}, {
 					React.createElement("UICorner", {
-						CornerRadius = UDim.new(0, 10),
+						CornerRadius = UDim.new(0.1, 0),
 					}),
 					React.createElement("UIStroke", {
-						Thickness = 3,
+						Thickness = 2,
 						Color = Color3.fromRGB(35, 100, 40),
 						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 					}),
@@ -549,10 +573,10 @@ local function OutfitViewer(props: {
 					end,
 				}, {
 					React.createElement("UICorner", {
-						CornerRadius = UDim.new(0, 10),
+						CornerRadius = UDim.new(0.1, 0),
 					}),
 					React.createElement("UIStroke", {
-						Thickness = 3,
+						Thickness = 2,
 						Color = Color3.fromRGB(33, 100, 100),
 						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 					}),
@@ -566,11 +590,13 @@ local function OutfitViewer(props: {
 			}, {
 				ScrollingFrame = React.createElement(createScrollingFrame, {
 					ids = ids,
-					textColor = props.textColor,
-					secondaryColor = props.secondaryColor,
+					textColor = Colors.textColor,
+					secondaryColor = Colors.secondaryColor,
 					setTotalCost = setTotalCost,
 					setCurrent = setCurrent,
 					current = current,
+					hovered = hovered,
+					setHovered = setHovered,
 				}),
 			}),
 		}),
@@ -587,28 +613,32 @@ local function OutfitViewer(props: {
 				Position = UDim2.fromScale(0.035, 0),
 				Size = UDim2.fromScale(0.29, 1),
 				Text = "Total Cost: " .. tostring(totalCost) .. utf8.char(0xE002),
-				TextColor3 = props.textColor,
+				TextColor3 = Colors.textColor,
 				TextScaled = true,
 			}),
 
 			CodeText = React.createElement("TextLabel", {
-				Position = UDim2.fromScale(0.87, 0.5),
+				Position = UDim2.fromScale(0.87, 0.4),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Size = UDim2.fromScale(0.2, 0.75),
-				BackgroundColor3 = Color3.fromRGB(164, 164, 255),
-				TextColor3 = props.textColor,
+				BackgroundColor3 = Colors.primaryColor,
+				TextColor3 = Colors.textColor,
 				ZIndex = 2,
 				TextScaled = true,
 				Text = props.code,
 				Font = Enum.Font.FredokaOne,
 			}, {
 				React.createElement("UICorner", {
-					CornerRadius = UDim.new(0, 10),
+					CornerRadius = UDim.new(0.1, 0),
 				}),
 				React.createElement("UIStroke", {
-					Thickness = 5,
+					Thickness = 2,
 					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Color = props.secondaryColor,
+					Color = Color3.new(
+						math.clamp(Colors.primaryColor.R * 0.5, 0, 1),
+						math.clamp(Colors.primaryColor.G * 0.5, 0, 1),
+						math.clamp(Colors.primaryColor.B * 0.5, 0, 1)
+					),
 				}),
 			}),
 		}),
@@ -616,18 +646,15 @@ local function OutfitViewer(props: {
 end
 
 local function OutfitApp()
-	local isOpen, setIsOpen = React.useState(false)
+	local ui = useUIContext()
 	local outfitCode, setOutfitCode = React.useState("")
 
-	local primaryColor = Color3.fromRGB(29, 31, 35)
-	local secondaryColor = Color3.fromRGB(118, 118, 212)
-	local textColor = Color3.fromRGB(255, 255, 255)
+	local APP_NAME = "OutfitViewer"
 
 	React.useEffect(function()
 		local connection = Signals.OpenOutfit:Connect(function(code: string)
 			setOutfitCode(code)
-			setIsOpen(true)
-			print("Received outfit:", code)
+			ui.openApp(APP_NAME)
 		end)
 
 		return function()
@@ -635,19 +662,15 @@ local function OutfitApp()
 		end
 	end, {})
 
-	local function handleClose()
-		setIsOpen(false)
-	end
-
-	return if isOpen
+	return if ui.activeApp == APP_NAME and outfitCode ~= ""
 		then React.createElement(OutfitViewer, {
 			code = outfitCode,
-			primaryColor = primaryColor,
-			secondaryColor = secondaryColor,
-			textColor = textColor,
-			onClose = handleClose,
+			onClose = function()
+				ui.closeApp()
+				setOutfitCode("")
+			end,
 		})
 		else nil
 end
 
-root:render(React.createElement(OutfitApp))
+return OutfitApp

@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Comm = require(ReplicatedStorage.Packages.Comm)
+local Signals = require(ReplicatedStorage.Packages.Signal)
 
 local serverComm = Comm.ServerComm.new(ReplicatedStorage)
 
@@ -13,8 +14,14 @@ local signals = {
 	-- Accessory
 	BuyAccessory = serverComm:CreateSignal("buyAccessory"),
 	AddToCart = serverComm:CreateSignal("AddToCart"),
-	WearAccessory = serverComm:CreateSignal("WearAccessory"),
+	TryAccessory = serverComm:CreateSignal("TryAccessory"),
 	LikeAccessory = serverComm:CreateSignal("LikeAccessory"),
+
+	-- DataStore
+	DataManagerLoaded = Signals.new(),
+
+	-- Player
+	PlayerEntered = serverComm:CreateSignal("PlayerEntered"),
 }
 
 return signals

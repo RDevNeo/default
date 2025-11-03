@@ -44,7 +44,7 @@ Signals.AddToCart:Connect(function(player: Player, id: number)
 	print(player.Name .. " ID >" .. tostring(id) .. " > ADD TO CART")
 end)
 
-Signals.WearAccessory:Connect(function(player: Player, id: number)
+Signals.TryAccessory:Connect(function(player: Player, id: number)
 	if not player then
 		return
 	end
