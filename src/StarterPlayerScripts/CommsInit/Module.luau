@@ -16,7 +16,15 @@ return {
 	AddToCart = clientComm:GetSignal("AddToCart"),
 	TryAccessory = clientComm:GetSignal("TryAccessory"),
 	LikeAccessory = clientComm:GetSignal("buyAccessory"),
+	RemoveToCart = clientComm:GetSignal("RemoveToCart"),
+	TakeOff = clientComm:GetSignal("TakeOff"),
 
 	-- Player
 	PlayerEntered = clientComm:GetSignal("PlayerEntered"),
+	OutfitCodeInputed = clientComm:GetSignal("OutfitCodeInputed"),
+	Warn = clientComm:GetSignal("Warn"),
+
+	-- Remote Functions (Global, created by Rojo)
+	ProfileLoaded = clientComm:GetSignal("ProfileLoaded"),
+	GetCart = ReplicatedStorage.RF.GetCart,
 }

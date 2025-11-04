@@ -13,6 +13,9 @@ local UIContextProvider = require(StarterPlayer.StarterPlayerScripts.Source.UICo
 -- UI Components
 local OutfitViewer = require(StarterPlayer.StarterPlayerScripts.Source.UI.OutfitViewer)
 local LeftButtons = require(StarterPlayer.StarterPlayerScripts.Source.UI.LeftButtons)
+local RightButtons = require(StarterPlayer.StarterPlayerScripts.Source.UI.RightButtons)
+local SearchOutfit = require(StarterPlayer.StarterPlayerScripts.Source.UI.SearchOutfit)
+local ShoppingCart = require(StarterPlayer.StarterPlayerScripts.Source.UI.ShoppingCart)
 
 -- Variables
 local player = Players.LocalPlayer
@@ -30,6 +33,9 @@ local function AppRouter()
 	return React.createElement(UIContextProvider, {}, {
 		React.createElement(OutfitViewer),
 		React.createElement(LeftButtons),
+		React.createElement(RightButtons),
+		React.createElement(SearchOutfit),
+		React.createElement(ShoppingCart),
 	})
 end
 

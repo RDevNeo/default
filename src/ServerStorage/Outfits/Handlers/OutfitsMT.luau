@@ -16,6 +16,38 @@ type Outfit = {
 
 local allOutfits: { Outfit } = {}
 
+function Outfits:IsOutfit(code: string): boolean
+	if type(code) ~= "string" or code == "" then
+		return false
+	end
+
+	for _, model in ipairs(CollectionService:GetTagged("Outfit")) do
+		local modelCode = model:GetAttribute("Code")
+		if typeof(modelCode) == "string" and string.lower(modelCode) == string.lower(code) then
+			return true
+		end
+	end
+	return false
+end
+
+function Outfits:GetOutfitByCode(code: string): Model?
+	if type(code) ~= "string" or code == "" then
+		return nil
+	end
+
+	for _, model in ipairs(CollectionService:GetTagged("Outfit")) do
+		local modelCode = model:GetAttribute("Code")
+		if typeof(modelCode) == "string" and string.lower(modelCode) == string.lower(code) then
+			return model
+		end
+	end
+	return nil
+end
+
+function Outfits:GetAllOutfits(): { Outfit }
+	return allOutfits
+end
+
 function Outfits.new(model: Model): Outfit
 	local self = setmetatable({}, Outfits)
 
@@ -73,9 +105,18 @@ for _, model in ipairs(CollectionService:GetTagged("Outfit")) do
 	Outfits.new(model)
 end
 
-function Outfits:GetAllOutfits(): { Outfit }
-	return allOutfits
-end
+-- Single connection for outfit code lookups (avoid per-instance duplication)
+Signals.OutfitCodeInputed:Connect(function(player: Player, code: string)
+	if player and code then
+		if Outfits:IsOutfit(code) then
+			Signals.OpenOutfit:Fire(player, string.upper(code))
+		else
+			local msg = "No Outfit found with that code!"
+			Signals.Warn:Fire(player, msg)
+			return
+		end
+	end
+end)
 
 -- Function to get all the model clothes or the desc
 

@@ -104,7 +104,8 @@ module.addAccessory = function(reference: Player | Model, Id: number)
 	Humanoid:ApplyDescriptionReset(CheckedHumanoidDescription or HumanoidDescription)
 end
 
-module.removeAccessory = function(reference: Player | Model, Id: number)
+module.removeAccessory = function(reference: Player | Model, Id)
+	local fixed = tonumber(Id)
 	local Character
 	local Humanoid
 	local HumanoidDescription
@@ -131,7 +132,7 @@ module.removeAccessory = function(reference: Player | Model, Id: number)
 		return MarketplaceService:GetProductInfo(Id, Enum.InfoType.Asset)
 	end)
 	if not success or not ItemDetails then
-		warn("[removeAccessory] Failed to get item info for assetId:", Id)
+		warn("[removeAccessory] Failed to get item info for assetId:", tostring(Id))
 		return
 	end
 
@@ -146,7 +147,6 @@ module.removeAccessory = function(reference: Player | Model, Id: number)
 
 		for index, details in ipairs(AccessoryBlob) do
 			if details.AssetId == Id then
-				print(Id)
 				table.remove(AccessoryBlob, index)
 				break
 			end
@@ -161,8 +161,8 @@ module.removeAccessory = function(reference: Player | Model, Id: number)
 
 		local updated = tostring(HumanoidDescription[Property])
 		updated = updated:gsub("(^,)", "")
-		updated = updated:gsub("," .. Id, "")
-		updated = updated:gsub(Id .. ",", "")
+		updated = updated:gsub("," .. tostring(Id), "")
+		updated = updated:gsub(tostring(Id) .. ",", "")
 		updated = updated:gsub(tostring(Id), "")
 		updated = updated:gsub(",+", ",")
 		updated = updated:gsub("^,", "")
@@ -207,8 +207,20 @@ module.getIds = function(humanoidDescription: HumanoidDescription): { number }
 	return ids
 end
 
-module.isUsingAsset = function(humanoidDesc: HumanoidDescription, assetId: number | { number })
-	local ids = module.getIds(humanoidDesc)
+module.isUsingAsset = function(player: Player, assetId: number | { number })
+	local char = player.Character
+
+	if not char then
+		return
+	end
+
+	local humanoid = char.Humanoid :: Humanoid
+
+	if not humanoid then
+		return
+	end
+
+	local ids = module.getIds(humanoid:GetAppliedDescription())
 
 	local lookup = {}
 	for _, v in pairs(ids) do

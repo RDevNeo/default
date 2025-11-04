@@ -4,6 +4,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local OutfitsMT = require(ServerStorage.Source.Outfits.Handlers.OutfitsMT)
 local Signals = require(ServerScriptService.Source.CommsInit.Module)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
+local DataManager = require(ServerStorage.Source.Datastore.DataManager)
 
 for i, outfit in ipairs(OutfitsMT.GetAllOutfits()) do
 	print(string.format("  Outfit %d: Name=%s, Code=%s", i, outfit.Name, outfit.Code))
@@ -41,7 +42,7 @@ Signals.AddToCart:Connect(function(player: Player, id: number)
 	if not id then
 		return
 	end
-	print(player.Name .. " ID >" .. tostring(id) .. " > ADD TO CART")
+	DataManager.AddCart(player, id)
 end)
 
 Signals.TryAccessory:Connect(function(player: Player, id: number)
@@ -51,7 +52,7 @@ Signals.TryAccessory:Connect(function(player: Player, id: number)
 	if not id then
 		return
 	end
-	print(player.Name .. " ID >" .. tostring(id) .. " > WEAR ACCESSORY")
+	OutfitHelper.addAccessory(player, id)
 end)
 
 Signals.LikeAccessory:Connect(function(player: Player, id: number)
@@ -63,3 +64,21 @@ Signals.LikeAccessory:Connect(function(player: Player, id: number)
 	end
 	print(player.Name .. " ID >" .. tostring(id) .. " > LIKE ACCESSORY")
 end)
+
+Signals.TakeOff:Connect(function(player: Player, id: number)
+	OutfitHelper.removeAccessory(player, id)
+end)
+
+Signals.RemoveToCart:Connect(function(player: Player, id: number | { number })
+	if type(id) == "number" then
+		DataManager.RemoveCart(player, id)
+	else
+		for _, v in pairs(id) do
+			DataManager.RemoveCart(player, v)
+		end
+	end
+end)
+
+Signals.GetCart.OnServerInvoke = function(player: Player): { number? }
+	return DataManager.GetCart(player)
+end

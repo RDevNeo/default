@@ -8,7 +8,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 
 local createButtons = function(props: { Name: string, APP_NAME: string, Order: number })
-	--local ui = useUIContext()
+	local ui = useUIContext()
 	return React.createElement("TextButton", {
 		Size = UDim2.fromScale(0.9, 0.07),
 		Name = props.Name,
@@ -20,7 +20,7 @@ local createButtons = function(props: { Name: string, APP_NAME: string, Order: n
 		LayoutOrder = props.Order,
 
 		[React.Event.Activated] = function(rbx)
-			--ui.openApp(props.APP_NAME)
+			ui.openApp(props.APP_NAME)
 		end,
 	}, {
 		React.createElement("UICorner", {
@@ -47,10 +47,10 @@ local function ShopApp()
 
 	return if ui.activeApp == nil
 		then React.createElement("Frame", {
-			Name = "RightButtons",
-			Size = UDim2.fromScale(0.16, 1),
+			Name = "LeftButtons",
+			Size = UDim2.fromScale(0.18, 1),
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0, 0.5),
+			Position = UDim2.fromScale(0.82, 0.5),
 			BackgroundTransparency = 1,
 		}, {
 			React.createElement("UIListLayout", {
@@ -61,11 +61,25 @@ local function ShopApp()
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}),
 
-			Donate = React.createElement(createButtons, { Name = "Donate", APP_NAME = "Donate", Order = 1 }),
-			Likes = React.createElement(createButtons, { Name = "Likes", APP_NAME = "Likes", Order = 2 }),
-			Reset = React.createElement(createButtons, { Name = "Reset", APP_NAME = "Reset", Order = 3 }),
-			Run = React.createElement(createButtons, { Name = "Run", APP_NAME = "Run", Order = 4 }),
-			MusicOff = React.createElement(createButtons, { Name = "Music Off", APP_NAME = "Music Off", Order = 5 }),
+			SearchOutfit = React.createElement(
+				createButtons,
+				{ Name = "Search Outfit", APP_NAME = "Search Outfit", Order = 1 }
+			),
+
+			ShoppingCart = React.createElement(
+				createButtons,
+				{ Name = "Shopping Cart", APP_NAME = "Shopping Cart", Order = 2 }
+			),
+
+			LikedAccessories = React.createElement(
+				createButtons,
+				{ Name = "Liked Accessories", APP_NAME = "Liked Accessories", Order = 3 }
+			),
+
+			SaveToRoblox = React.createElement(
+				createButtons,
+				{ Name = "Save To Roblox", APP_NAME = "Save To Roblox", Order = 4 }
+			),
 		})
 		else nil
 end

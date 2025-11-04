@@ -5,6 +5,15 @@
 
     "ReplicatedStorage": {
       "$path": "src/ReplicatedStorage",
+      "RF": {
+        "$className": "Folder",
+
+        "GetCart": {
+          "$className" : "RemoteFunction"
+        }
+      },
+
+
       "Packages": {
         "$className": "Folder",
         "$path": "Packages"
