@@ -1,14 +1,27 @@
 -- Services
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local UserInputService = game:GetService("UserInputService")
 
 -- Dependencies
-local Colors = require("./Colors")
+local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
+local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 
-local createButtons = function(props: { Name: string, APP_NAME: string, Order: number })
-	--local ui = useUIContext()
+-- Variables
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local Humanoid = character.Humanoid :: Humanoid
+
+local createButton = function(
+	props: {
+		Name: string, -- dynamic text label (reactive)
+		Order: number,
+		onPress: ((Instance?) -> ())?,
+	}
+)
 	return React.createElement("TextButton", {
 		Size = UDim2.fromScale(0.9, 0.07),
 		Name = props.Name,
@@ -20,20 +33,18 @@ local createButtons = function(props: { Name: string, APP_NAME: string, Order: n
 		LayoutOrder = props.Order,
 
 		[React.Event.Activated] = function(rbx)
-			--ui.openApp(props.APP_NAME)
+			if props.onPress then
+				props.onPress(rbx)
+			end
 		end,
 	}, {
-		React.createElement("UICorner", {
-			CornerRadius = UDim.new(0.2, 0),
-		}),
-
-		React.createElement("UIStroke", {
+		UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
+		UIStroke = React.createElement("UIStroke", {
 			Thickness = 2,
 			Color = Colors.accentColor,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
-
-		React.createElement("UIPadding", {
+		UIPadding = React.createElement("UIPadding", {
 			PaddingTop = UDim.new(0.02, 0),
 			PaddingBottom = UDim.new(0.02, 0),
 			PaddingRight = UDim.new(0.02, 0),
@@ -43,7 +54,34 @@ local createButtons = function(props: { Name: string, APP_NAME: string, Order: n
 end
 
 local function ShopApp()
+	local run, setRun = React.useState(false)
 	local ui = useUIContext()
+
+	local function toggleRun()
+		setRun(function(prev)
+			return not prev
+		end)
+	end
+
+	React.useEffect(function()
+		if run then
+			Humanoid.WalkSpeed = Signals.GetRunConfig:InvokeServer()
+		else
+			Humanoid.WalkSpeed = 16
+		end
+	end, { run })
+
+	React.useEffect(function()
+		local connection = UserInputService.InputBegan:Connect(function(input, processed)
+			if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
+				toggleRun()
+			end
+		end)
+
+		return function()
+			connection:Disconnect()
+		end
+	end, {})
 
 	return if ui.activeApp == nil
 		then React.createElement("Frame", {
@@ -53,7 +91,7 @@ local function ShopApp()
 			Position = UDim2.fromScale(0, 0.5),
 			BackgroundTransparency = 1,
 		}, {
-			React.createElement("UIListLayout", {
+			UIListLayout = React.createElement("UIListLayout", {
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 				Padding = UDim.new(0.02, 0),
@@ -61,11 +99,16 @@ local function ShopApp()
 				SortOrder = Enum.SortOrder.LayoutOrder,
 			}),
 
-			Donate = React.createElement(createButtons, { Name = "Donate", APP_NAME = "Donate", Order = 1 }),
-			Likes = React.createElement(createButtons, { Name = "Likes", APP_NAME = "Likes", Order = 2 }),
-			Reset = React.createElement(createButtons, { Name = "Reset", APP_NAME = "Reset", Order = 3 }),
-			Run = React.createElement(createButtons, { Name = "Run", APP_NAME = "Run", Order = 4 }),
-			MusicOff = React.createElement(createButtons, { Name = "Music Off", APP_NAME = "Music Off", Order = 5 }),
+			Run = React.createElement(createButton, {
+				Name = run and "Walk" or "Run",
+				Order = 4,
+				onPress = toggleRun,
+			}),
+
+			Donate = React.createElement(createButton, { Name = "Donate", Order = 1, onPress = print }),
+			Likes = React.createElement(createButton, { Name = "Likes", Order = 2, onPress = print }),
+			Reset = React.createElement(createButton, { Name = "Reset", Order = 3, onPress = print }),
+			MusicOff = React.createElement(createButton, { Name = "Toggle Music", Order = 5, onPress = print }),
 		})
 		else nil
 end

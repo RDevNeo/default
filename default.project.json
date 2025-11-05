@@ -10,6 +10,15 @@
 
         "GetCart": {
           "$className" : "RemoteFunction"
+        },
+        "GetLikedAccs": {
+          "$className" : "RemoteFunction"
+        },
+        "GetOwnedAssets": {
+          "$className": "RemoteFunction"
+        },
+        "GetRunConfig": {
+          "$className": "RemoteFunction"
         }
       },
 

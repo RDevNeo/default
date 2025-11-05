@@ -1,6 +1,7 @@
 -- Services
 local CollectionService = game:GetService("CollectionService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 
@@ -8,14 +9,12 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local React = require(ReplicatedStorage.Packages.React)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
+local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 
--- Color
-local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
-
--- Cache for product info to avoid repeated API calls
+-- Cache
 local productInfoCache: { [number]: any } = {}
 
 local function getModelByCode(code: string): Model?
@@ -31,16 +30,22 @@ end
 
 local function createScrollingFrame(props: {
 	ids: { number },
-	setTotalCost: (number) -> number,
-	setCurrent: (number?) -> number?,
+	cart: { number },
+	likedAccs: { number },
 	current: number?,
 	hovered: number?,
+	removeFromLikeds: (id: number) -> (),
+	addToLikes: (id: number) -> (),
+	addToCart: (id: number) -> (),
+	removeFromCart: (number) -> (),
 	setHovered: (number?) -> number?,
+	setTotalCost: (number) -> number,
+	setCurrent: (number?) -> number?,
 })
 	local productInfos, setProductInfos = React.useState({} :: { [number]: any })
 	local _isLoading, setIsLoading = React.useState(true)
+	local isWearing, setIsWearing = React.useState(nil)
 
-	-- Load product info asynchronously and cache results
 	React.useEffect(function()
 		if not props.ids or #props.ids == 0 then
 			setIsLoading(false)
@@ -55,7 +60,6 @@ local function createScrollingFrame(props: {
 		local cancelled = false
 		local hasUpdated = false
 
-		-- Helper function to safely update state
 		local function tryUpdateState()
 			if cancelled or hasUpdated then
 				return
@@ -74,7 +78,6 @@ local function createScrollingFrame(props: {
 				loadedCount += 1
 				task.defer(tryUpdateState)
 			else
-				-- Load asynchronously
 				task.spawn(function()
 					local success, assetInfo = pcall(function()
 						return MarketplaceService:GetProductInfo(id)
@@ -96,7 +99,23 @@ local function createScrollingFrame(props: {
 		end
 	end, { props.ids })
 
-	-- Calculate total cost only when productInfos change
+	React.useEffect(function()
+		if props.ids and #props.ids > 0 then
+			setIsWearing(OutfitHelper.isUsingAsset(Players.LocalPlayer, props.ids))
+		end
+	end, { props.ids })
+
+	local function toggleWearing(id: number, shouldWear: boolean)
+		local fix = tonumber(id)
+		setIsWearing(function(prev)
+			local newWearing = table.clone(prev or {})
+			newWearing[fix] = shouldWear
+			return newWearing
+		end)
+	end
+
+	React.useEffect(function() end)
+
 	local totalCost = React.useMemo(function()
 		local cost = 0
 		for id, assetInfo in pairs(productInfos) do
@@ -107,12 +126,10 @@ local function createScrollingFrame(props: {
 		return cost
 	end, { productInfos })
 
-	-- Update parent total cost
 	React.useEffect(function()
 		props.setTotalCost(totalCost)
 	end, { totalCost })
 
-	-- Memoize children to prevent unnecessary re-renders
 	local children = React.useMemo(function()
 		local childElements = {
 			React.createElement("UIGridLayout", {
@@ -222,7 +239,27 @@ local function createScrollingFrame(props: {
 									}),
 								}),
 
-								Try = React.createElement("TextButton", {
+								(isWearing and isWearing[id] == true) and React.createElement("TextButton", {
+									Name = "TakeOffButton" .. id,
+									BackgroundColor3 = Color3.fromRGB(161, 73, 73),
+									Position = UDim2.fromScale(0.35, 0.65),
+									Size = UDim2.fromScale(0.62, 0.25),
+									Text = "TAKE OFF",
+									TextColor3 = Color3.fromRGB(48, 48, 48),
+									TextScaled = true,
+									Font = Enum.Font.FredokaOne,
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
+
+									[React.Event.Activated] = function()
+										Signals.TakeOff:Fire(tonumber(id))
+										toggleWearing(id, false)
+									end,
+								}, {
+									React.createElement("UICorner", {
+										CornerRadius = UDim.new(0.2, 0),
+									}),
+								}) or React.createElement("TextButton", {
 									Name = "TryButton" .. id,
 									BackgroundColor3 = Color3.fromRGB(54, 187, 21),
 									Position = UDim2.fromScale(0.35, 0.65),
@@ -234,38 +271,78 @@ local function createScrollingFrame(props: {
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
-									[React.Event.Activated] = function(instance)
+									[React.Event.Activated] = function()
 										Signals.TryAccessory:Fire(id)
+										toggleWearing(id, true)
 									end,
 								}, {
-
 									React.createElement("UICorner", {
 										CornerRadius = UDim.new(0.2, 0),
 									}),
 								}),
 
-								AddToCart = React.createElement("TextButton", {
-									Name = "AddToCartButton" .. id,
-									BackgroundColor3 = Color3.fromRGB(156, 156, 156),
-									Position = UDim2.fromScale(0.83, 0.5),
-									Size = UDim2.fromScale(0.25, 0.25),
-									Text = "Cart",
-									TextColor3 = Color3.fromRGB(48, 48, 48),
-									TextScaled = true,
-									Font = Enum.Font.FredokaOne,
+								(table.find(props.cart, id) ~= nil)
+										and React.createElement("ImageButton", {
+											Name = "RemoveCart" .. id,
+											BackgroundTransparency = 1,
+											Position = UDim2.fromScale(0.83, 0.28),
+											Image = "rbxassetid://135209363113234",
+											ImageColor3 = Color3.fromRGB(155, 155, 155),
+											Size = UDim2.fromScale(0.3, 0.3),
+											AnchorPoint = Vector2.new(0.5, 0.5),
+											ZIndex = 2,
+
+											[React.Event.Activated] = function(instance)
+												Signals.RemoveToCart:Fire(id)
+												props.removeFromCart(id)
+											end,
+											-- Add to Cart
+										})
+									or React.createElement("ImageButton", {
+										Name = "AddCart" .. id,
+										Image = "rbxassetid://135209363113234",
+										ImageColor3 = Color3.fromRGB(255, 255, 255),
+										BackgroundTransparency = 1,
+										Position = UDim2.fromScale(0.83, 0.28),
+										Size = UDim2.fromScale(0.3, 0.3),
+										AnchorPoint = Vector2.new(0.5, 0.5),
+										ZIndex = 2,
+
+										[React.Event.Activated] = function(instance)
+											Signals.AddToCart:Fire(id)
+											props.addToCart(id)
+										end,
+									}),
+
+								(table.find(props.likedAccs, id) ~= nil) and React.createElement("ImageButton", {
+									Name = "RemoveLikes" .. id,
+									BackgroundTransparency = 1,
+									Position = UDim2.fromScale(0.83, 0.65),
+									Image = "rbxassetid://97542709722551",
+									ImageColor3 = Color3.fromRGB(255, 255, 0),
+									Size = UDim2.fromScale(0.3, 0.3),
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.AddToCart:Fire(id)
+										Signals.UnlikeAccessory:Fire(id)
+										props.removeFromLikeds(id)
 									end,
-								}, {
+								}) or React.createElement("ImageButton", {
+									Name = "AddLike" .. id,
+									Image = "rbxassetid://97542709722551",
+									ImageColor3 = Color3.fromRGB(255, 255, 255),
+									BackgroundTransparency = 1,
+									Position = UDim2.fromScale(0.83, 0.65),
+									Size = UDim2.fromScale(0.3, 0.3),
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
 
-									React.createElement("UICorner", {
-										CornerRadius = UDim.new(0.2, 0),
-									}),
+									[React.Event.Activated] = function(instance)
+										Signals.LikeAccessory:Fire(id)
+										props.addToLikes(id)
+									end,
 								}),
-
 								BackgroundFade = React.createElement("Frame", {
 									Name = "Background",
 									ZIndex = 1,
@@ -289,25 +366,6 @@ local function createScrollingFrame(props: {
 										}),
 									}),
 								}),
-							}),
-
-							props.hovered == id and React.createElement("ImageButton", {
-								Size = UDim2.fromScale(0.3, 0.3),
-								BackgroundTransparency = 1,
-								Image = "rbxassetid://97542709722551",
-
-								[React.Event.MouseEnter] = function(instance: ImageButton)
-									instance.ImageColor3 = Color3.fromRGB(255, 170, 0)
-								end,
-
-								[React.Event.MouseLeave] = function(instance: ImageButton)
-									instance.ImageColor3 = Color3.fromRGB(255, 255, 255)
-								end,
-
-								[React.Event.Activated] = function(instance: ImageButton)
-									Signals.LikeAccessory:Fire(id)
-									instance.ImageColor3 = Color3.fromRGB(255, 170, 0)
-								end,
 							}),
 						}),
 
@@ -344,7 +402,16 @@ local function createScrollingFrame(props: {
 		end
 
 		return childElements
-	end, { productInfos, props.current, props.ids, props.hovered })
+	end, {
+		productInfos,
+		props.current,
+		props.ids,
+		props.hovered,
+		props.cart,
+		props.likedAccs,
+		props.addToLikes,
+		props.removeFromLikeds,
+	})
 
 	if props.ids then
 		return React.createElement("ScrollingFrame", {
@@ -362,6 +429,12 @@ end
 
 local function OutfitViewer(props: {
 	code: string,
+	cart: { number },
+	removeFromCart: (number) -> (),
+	likedAccs: { number },
+	addToLikes: (number) -> (),
+	removeFromLikeds: (number) -> (),
+	addToCart: (id: number) -> (),
 	onClose: () -> (),
 }): Frame?
 	local viewportRef = React.useRef(nil)
@@ -596,6 +669,9 @@ local function OutfitViewer(props: {
 			}, {
 				ScrollingFrame = React.createElement(createScrollingFrame, {
 					ids = ids,
+					cart = props.cart,
+					removeFromCart = props.removeFromCart,
+					addToCart = props.addToCart,
 					textColor = Colors.textColor,
 					secondaryColor = Colors.secondaryColor,
 					setTotalCost = setTotalCost,
@@ -603,6 +679,9 @@ local function OutfitViewer(props: {
 					current = current,
 					hovered = hovered,
 					setHovered = setHovered,
+					likedAccs = props.likedAccs or {},
+					addToLikes = props.addToLikes,
+					removeFromLikeds = props.removeFromLikeds,
 				}),
 			}),
 		}),
@@ -654,8 +733,69 @@ end
 local function OutfitApp()
 	local ui = useUIContext()
 	local outfitCode, setOutfitCode = React.useState("")
+	local cart, setCart = React.useState({} :: { number })
+	local likedAccs, setLikedsAccs = React.useState({} :: { number })
 
 	local APP_NAME = "OutfitViewer"
+
+	React.useEffect(function()
+		if ui.activeApp == APP_NAME then
+			local fetchedCart = Signals.GetCart:InvokeServer()
+			local fetchedLikeds = Signals.GetLikedAccs:InvokeServer()
+			if fetchedCart and fetchedLikeds then
+				setCart(fetchedCart)
+				setLikedsAccs(fetchedLikeds)
+			end
+		end
+	end, { ui.activeApp })
+
+	local removeFromLikeds = React.useCallback(function(id: number)
+		setLikedsAccs(function(prevLiked)
+			local newCart = {}
+			for _, itemId in ipairs(prevLiked) do
+				if itemId ~= id then
+					table.insert(newCart, itemId)
+				end
+			end
+			return newCart
+		end)
+	end, {})
+
+	local addToLikes = React.useCallback(function(id: number)
+		setLikedsAccs(function(prevLiked)
+			if table.find(prevLiked, id) ~= nil then
+				return prevLiked
+			end
+
+			local newCart = table.clone(prevLiked)
+			table.insert(newCart, id)
+			return newCart
+		end)
+	end, {})
+
+	local removeFromCart = React.useCallback(function(id: number)
+		setCart(function(prevCart)
+			local newCart = {}
+			for _, itemId in ipairs(prevCart) do
+				if itemId ~= id then
+					table.insert(newCart, itemId)
+				end
+			end
+			return newCart
+		end)
+	end, {})
+
+	local addToCart = React.useCallback(function(id: number)
+		setCart(function(prevCart)
+			if table.find(prevCart, id) ~= nil then
+				return prevCart
+			end
+
+			local newCart = table.clone(prevCart)
+			table.insert(newCart, id)
+			return newCart
+		end)
+	end, {})
 
 	React.useEffect(function()
 		local connection = Signals.OpenOutfit:Connect(function(code: string)
@@ -671,6 +811,12 @@ local function OutfitApp()
 	return if ui.activeApp == APP_NAME and outfitCode ~= ""
 		then React.createElement(OutfitViewer, {
 			code = outfitCode,
+			cart = cart,
+			likedAccs = likedAccs,
+			removeFromCart = removeFromCart,
+			addToCart = addToCart,
+			removeFromLikeds = removeFromLikeds,
+			addToLikes = addToLikes,
 			onClose = function()
 				ui.closeApp()
 				setOutfitCode("")

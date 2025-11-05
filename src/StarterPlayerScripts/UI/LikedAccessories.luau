@@ -17,10 +17,10 @@ local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext
 local productInfoCache: { [number]: any } = {}
 
 local function createScrollingFrame(props: {
-	ids: { number },
+	cart: { number } | {},
 	likedAccs: { number } | {},
+	onAddItem: (number) -> (),
 	onRemoveItem: (number) -> (),
-	setTotalCost: (number) -> number,
 	setCurrent: (number?) -> number?,
 	current: number?,
 	hovered: number?,
@@ -32,8 +32,9 @@ local function createScrollingFrame(props: {
 	local _isLoading, setIsLoading = React.useState(true)
 	local isWearing, setIsWearing = React.useState(nil)
 
+	-- Load product info only when likedAccs list changes (and cache results)
 	React.useEffect(function()
-		if not props.ids or #props.ids == 0 then
+		if not props.likedAccs or #props.likedAccs == 0 then
 			setIsLoading(false)
 			setProductInfos({})
 			return
@@ -42,7 +43,7 @@ local function createScrollingFrame(props: {
 		setIsLoading(true)
 		local newProductInfos = {}
 		local loadedCount = 0
-		local totalCount = #props.ids
+		local totalCount = #props.likedAccs
 		local cancelled = false
 		local hasUpdated = false
 
@@ -57,12 +58,13 @@ local function createScrollingFrame(props: {
 			end
 		end
 
-		for _, id in props.ids do
+		for _, id in ipairs(props.likedAccs) do
 			if productInfoCache[id] then
 				newProductInfos[id] = productInfoCache[id]
 				loadedCount += 1
 				task.defer(tryUpdateState)
 			else
+				-- spawn to avoid blocking
 				task.spawn(function()
 					local success, info = pcall(MarketplaceService.GetProductInfo, MarketplaceService, id)
 					if success and info then
@@ -78,24 +80,17 @@ local function createScrollingFrame(props: {
 		return function()
 			cancelled = true
 		end
-	end, { props.ids })
-
-	local totalCost = React.useMemo(function()
-		local cost = 0
-		for id, assetInfo in pairs(productInfos) do
-			if assetInfo and assetInfo.IsForSale and table.find(props.ids, id) then
-				cost += assetInfo.PriceInRobux
-			end
-		end
-		return cost
-	end, { productInfos, props.ids })
+	end, { props.likedAccs })
 
 	React.useEffect(function()
-		if props.ids and #props.ids > 0 then
-			setIsWearing(OutfitHelper.isUsingAsset(Players.LocalPlayer, props.ids))
+		if props.likedAccs and #props.likedAccs > 0 then
+			setIsWearing(OutfitHelper.isUsingAsset(Players.LocalPlayer, props.likedAccs))
+		else
+			setIsWearing({})
 		end
-	end, { props.ids })
+	end, { props.likedAccs })
 
+	-- Immediate optimistic toggle for try/takeoff (keeps UI snappy)
 	local function toggleWearing(id: number, shouldWear: boolean)
 		local fix = tonumber(id)
 		setIsWearing(function(prev)
@@ -105,10 +100,7 @@ local function createScrollingFrame(props: {
 		end)
 	end
 
-	React.useEffect(function()
-		props.setTotalCost(totalCost)
-	end, { totalCost })
-
+	-- Build children (memoized)
 	local children = React.useMemo(function()
 		local childElements = {
 			React.createElement("UIGridLayout", {
@@ -119,15 +111,16 @@ local function createScrollingFrame(props: {
 			}),
 		}
 
-		if props.ids then
-			for index, id in pairs(props.ids) do
+		if props.likedAccs then
+			for index, id in ipairs(props.likedAccs) do
 				local assetInfo = productInfos[id]
 				if assetInfo and assetInfo.IsForSale then
-					childElements["OutfitButton" .. id] = React.createElement("Frame", {
-						Name = "ShoppingCart" .. tostring(id),
+					local inCart = table.find(props.cart or {}, id) ~= nil
+
+					childElements["LikedAccessory" .. id] = React.createElement("Frame", {
+						Name = "LikedAccessories" .. tostring(id),
 						BackgroundTransparency = 1,
 					}, {
-
 						React.createElement("UIAspectRatioConstraint"),
 
 						ShowInfo = React.createElement("TextButton", {
@@ -139,24 +132,23 @@ local function createScrollingFrame(props: {
 							Text = "",
 							LayoutOrder = 1,
 
-							[React.Event.MouseEnter] = function(instance: TextButton)
+							[React.Event.MouseEnter] = function()
 								if props.current ~= id then
 									props.setHovered(id)
 								end
 							end,
 
-							[React.Event.MouseLeave] = function(instance: TextButton)
+							[React.Event.MouseLeave] = function()
 								if props.current ~= id then
 									props.setHovered(nil)
 								end
 							end,
 
-							[React.Event.Activated] = function(instance: TextButton)
+							[React.Event.Activated] = function()
 								if props.current == id then
 									props.setCurrent(nil)
 								else
 									props.setCurrent(id)
-
 									if props.setHovered then
 										props.setHovered(nil)
 									end
@@ -192,7 +184,6 @@ local function createScrollingFrame(props: {
 								Size = UDim2.fromScale(1, 1),
 								BackgroundTransparency = 1,
 							}, {
-
 								BuyAccessory = React.createElement("TextButton", {
 									Name = "BuyButton" .. id,
 									BackgroundColor3 = Color3.fromRGB(54, 187, 21),
@@ -205,14 +196,11 @@ local function createScrollingFrame(props: {
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
-									[React.Event.Activated] = function(instance)
+									[React.Event.Activated] = function()
 										Signals.BuyAccessory:Fire(id)
 									end,
 								}, {
-
-									React.createElement("UICorner", {
-										CornerRadius = UDim.new(0.2, 0),
-									}),
+									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
 								}),
 
 								(isWearing and isWearing[id] == true) and React.createElement("TextButton", {
@@ -228,13 +216,11 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TakeOff:Fire(tonumber(id))
 										toggleWearing(id, false)
+										Signals.TakeOff:Fire(tonumber(id))
 									end,
 								}, {
-									React.createElement("UICorner", {
-										CornerRadius = UDim.new(0.2, 0),
-									}),
+									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
 								}) or React.createElement("TextButton", {
 									Name = "TryButton" .. id,
 									BackgroundColor3 = Color3.fromRGB(54, 187, 21),
@@ -248,16 +234,13 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TryAccessory:Fire(id)
 										toggleWearing(id, true)
+										Signals.TryAccessory:Fire(id)
 									end,
 								}, {
-									React.createElement("UICorner", {
-										CornerRadius = UDim.new(0.2, 0),
-									}),
+									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
 								}),
-
-								RemoveToCart = React.createElement("ImageButton", {
+								inCart and React.createElement("ImageButton", {
 									Name = "RemoveCart" .. id,
 									BackgroundTransparency = 1,
 									Position = UDim2.fromScale(0.83, 0.28),
@@ -267,9 +250,23 @@ local function createScrollingFrame(props: {
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
-									[React.Event.Activated] = function(instance)
-										Signals.RemoveToCart:Fire(id)
+									[React.Event.Activated] = function()
 										props.onRemoveItem(id)
+										Signals.RemoveToCart:Fire(id)
+									end,
+								}) or React.createElement("ImageButton", {
+									Name = "AddCart" .. id,
+									Image = "rbxassetid://135209363113234",
+									ImageColor3 = Color3.fromRGB(255, 255, 255),
+									BackgroundTransparency = 1,
+									Position = UDim2.fromScale(0.83, 0.28),
+									Size = UDim2.fromScale(0.3, 0.3),
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									ZIndex = 2,
+
+									[React.Event.Activated] = function()
+										props.onAddItem(id)
+										Signals.AddToCart:Fire(id)
 									end,
 								}),
 
@@ -283,9 +280,9 @@ local function createScrollingFrame(props: {
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
-									[React.Event.Activated] = function(instance)
-										Signals.UnlikeAccessory:Fire(id)
+									[React.Event.Activated] = function()
 										props.removeFromLikeds(id)
+										Signals.UnlikeAccessory:Fire(id)
 									end,
 								}) or React.createElement("ImageButton", {
 									Name = "AddLike" .. id,
@@ -297,9 +294,9 @@ local function createScrollingFrame(props: {
 									AnchorPoint = Vector2.new(0.5, 0.5),
 									ZIndex = 2,
 
-									[React.Event.Activated] = function(instance)
-										Signals.LikeAccessory:Fire(id)
+									[React.Event.Activated] = function()
 										props.addToLikes(id)
+										Signals.LikeAccessory:Fire(id)
 									end,
 								}),
 
@@ -308,10 +305,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 1,
 									Size = UDim2.fromScale(1, 1),
 								}, {
-									Corner = React.createElement("UICorner", {
-										CornerRadius = UDim.new(0.1, 0),
-									}),
-
+									React.createElement("UICorner", { CornerRadius = UDim.new(0.1, 0) }),
 									React.createElement("UIGradient", {
 										Rotation = 90,
 										Color = ColorSequence.new({
@@ -365,56 +359,48 @@ local function createScrollingFrame(props: {
 	end, {
 		productInfos,
 		props.current,
-		props.ids,
+		props.likedAccs,
+		props.cart,
 		props.hovered,
 		isWearing,
-		props.addToLikes,
-		props.removeFromLikeds,
-		props.likedAccs,
 	})
 
-	if props.ids and #props.ids > 0 then
+	if props.likedAccs and #props.likedAccs > 0 then
 		return React.createElement("ScrollingFrame", {
 			Size = UDim2.fromScale(0.95, 0.95),
 			Position = UDim2.fromScale(0.5, 0.5),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			CanvasSize = UDim2.fromOffset(0, #props.ids * 70),
+			CanvasSize = UDim2.fromOffset(0, #props.likedAccs * 70),
 			BackgroundTransparency = 1,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
 		}, children)
 	end
+
 	return nil
 end
 
-local function ShoppingCart(props: {
+local function LikedAccessories(props: {
 	cart: { number } | {},
 	likedAccs: { number } | {},
+	onAddItem: (number) -> (),
 	onRemoveItem: (number) -> (),
-	removeAll: () -> (),
 	onClose: () -> (),
 	removeFromLikeds: (id: number) -> (),
 	addToLikes: (id: number) -> (),
 }): Frame?
-	local totalCost, setTotalCost = React.useState(0)
 	local current, setCurrent = React.useState(nil)
 	local hovered, setHovered = React.useState(nil)
 
 	return React.createElement("Frame", {
-		Name = "Shopping Cart",
+		Name = "Liked Accessories",
 		Size = UDim2.fromScale(0.8, 0.8),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		BackgroundColor3 = Colors.primaryColor,
 	}, {
-		React.createElement("UICorner", {
-			CornerRadius = UDim.new(0.05, 0),
-		}),
-
-		React.createElement("UIStroke", {
-			Thickness = 4,
-			Color = Colors.secondaryColor,
-		}),
+		React.createElement("UICorner", { CornerRadius = UDim.new(0.05, 0) }),
+		React.createElement("UIStroke", { Thickness = 4, Color = Colors.secondaryColor }),
 
 		Name = React.createElement("Frame", {
 			Name = "Name",
@@ -423,24 +409,18 @@ local function ShoppingCart(props: {
 			Size = UDim2.fromScale(0.4, 0.13),
 			BackgroundColor3 = Colors.primaryColor,
 		}, {
-			React.createElement("UICorner", {
-				CornerRadius = UDim.new(0.1, 0),
-			}),
+			React.createElement("UICorner", { CornerRadius = UDim.new(0.1, 0) }),
 			Title = React.createElement("TextLabel", {
 				BackgroundTransparency = 1,
 				Font = Enum.Font.FredokaOne,
 				Position = UDim2.fromScale(0.5, 0.5),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Size = UDim2.fromScale(1, 1),
-				Text = "Shopping Cart",
+				Text = "Liked Accessories",
 				TextColor3 = Colors.textColor,
 				TextScaled = true,
 			}),
-
-			React.createElement("UIStroke", {
-				Thickness = 4,
-				Color = Colors.secondaryColor,
-			}),
+			React.createElement("UIStroke", { Thickness = 4, Color = Colors.secondaryColor }),
 		}),
 
 		CloseButton = React.createElement("TextButton", {
@@ -453,12 +433,9 @@ local function ShoppingCart(props: {
 			TextColor3 = Colors.textColor,
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
-
 			[React.Event.Activated] = props.onClose,
 		}, {
-			React.createElement("UICorner", {
-				CornerRadius = UDim.new(0.1, 0),
-			}),
+			React.createElement("UICorner", { CornerRadius = UDim.new(0.1, 0) }),
 			React.createElement("UIStroke", {
 				Thickness = 3,
 				Color = Color3.new(
@@ -479,182 +456,92 @@ local function ShoppingCart(props: {
 			BackgroundTransparency = 1,
 		}, {
 			ScrollingFrame = React.createElement(createScrollingFrame, {
-				ids = props.cart,
+				cart = props.cart or {},
+				onAddItem = props.onAddItem,
 				onRemoveItem = props.onRemoveItem,
-				setTotalCost = setTotalCost,
 				setCurrent = setCurrent,
 				current = current,
 				hovered = hovered,
 				setHovered = setHovered,
 				removeFromLikeds = props.removeFromLikeds,
 				addToLikes = props.addToLikes,
-				likedAccs = props.likedAccs,
-			}),
-		}),
-
-		Footer = React.createElement("Frame", {
-			Name = "Footer",
-			Size = UDim2.fromScale(0.95, 0.2),
-			Position = UDim2.fromScale(0.5, 0.88),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundTransparency = 1,
-		}, {
-			TotalItems = React.createElement("TextLabel", {
-				Position = UDim2.fromScale(0, 0.38),
-				AnchorPoint = Vector2.new(0, 0.5),
-				Size = UDim2.fromScale(0.4, 0.4),
-				Text = "Total Items: " .. tostring(#props.cart) .. "/20",
-				BackgroundTransparency = 1,
-				TextScaled = true,
-				Font = Enum.Font.FredokaOne,
-				TextColor3 = Colors.textColor,
-			}),
-			TotalRobux = React.createElement("TextLabel", {
-				Position = UDim2.fromScale(0, 0.65),
-				AnchorPoint = Vector2.new(0, 0.5),
-				Size = UDim2.fromScale(0.4, 0.25),
-				BackgroundTransparency = 1,
-				Text = tostring(totalCost) .. utf8.char(0xE002),
-				TextScaled = true,
-				Font = Enum.Font.FredokaOne,
-				TextColor3 = Color3.fromRGB(134, 134, 134),
-			}),
-
-			RemoveAll = React.createElement("TextButton", {
-				BackgroundColor3 = Colors.destructiveColor,
-				TextColor3 = Colors.textColor,
-				Text = "Remove All",
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.55, 0.5),
-				Size = UDim2.fromScale(0.2, 0.5),
-				TextScaled = true,
-				Font = Enum.Font.FredokaOne,
-
-				[React.Event.Activated] = function(rbx)
-					props.removeAll()
-					Signals.RemoveToCart:Fire(props.cart)
-				end,
-			}, {
-				React.createElement("UICorner", {
-					CornerRadius = UDim.new(0.1, 0),
-				}),
-
-				React.createElement("UIPadding", {
-					PaddingTop = UDim.new(0.02, 0),
-					PaddingBottom = UDim.new(0.02, 0),
-					PaddingRight = UDim.new(0.02, 0),
-					PaddingLeft = UDim.new(0.02, 0),
-				}),
-
-				React.createElement("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Thickness = 4,
-					Color = Color3.new(
-						math.clamp(Colors.destructiveColor.R * 0.5, 0, 1),
-						math.clamp(Colors.destructiveColor.G * 0.5, 0, 1),
-						math.clamp(Colors.destructiveColor.B * 0.5, 0, 1)
-					),
-				}),
-			}),
-
-			BuyAllButton = React.createElement("TextButton", {
-				BackgroundColor3 = Colors.foregroundColor,
-				TextColor3 = Colors.textColor,
-				Text = "Buy All",
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.fromScale(0.78, 0.5),
-				Size = UDim2.fromScale(0.2, 0.5),
-				TextScaled = true,
-				Font = Enum.Font.FredokaOne,
-			}, {
-				React.createElement("UICorner", {
-					CornerRadius = UDim.new(0.1, 0),
-				}),
-
-				React.createElement("UIPadding", {
-					PaddingTop = UDim.new(0.02, 0),
-					PaddingBottom = UDim.new(0.02, 0),
-					PaddingRight = UDim.new(0.02, 0),
-					PaddingLeft = UDim.new(0.02, 0),
-				}),
-
-				React.createElement("UIStroke", {
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Thickness = 4,
-					Color = Color3.new(
-						math.clamp(Colors.foregroundColor.R * 0.5, 0, 1),
-						math.clamp(Colors.foregroundColor.G * 0.5, 0, 1),
-						math.clamp(Colors.foregroundColor.B * 0.5, 0, 1)
-					),
-				}),
+				likedAccs = props.likedAccs or {},
 			}),
 		}),
 	})
 end
 
-local function ShoppingCartApp()
+local function LikedAccessoriesApp()
 	local ui = useUIContext()
 	local cart, setCart = React.useState({} :: { number })
 	local likedAccs, setLikedsAccs = React.useState({} :: { number })
 
-	local APP_NAME = "Shopping Cart"
+	local APP_NAME = "Liked Accessories"
 
 	React.useEffect(function()
 		if ui.activeApp == APP_NAME then
 			local fetchedCart = Signals.GetCart:InvokeServer()
 			local fetchedLikeds = Signals.GetLikedAccs:InvokeServer()
-			if fetchedCart and fetchedLikeds then
+			if fetchedCart then
 				setCart(fetchedCart)
+			end
+			if fetchedLikeds then
 				setLikedsAccs(fetchedLikeds)
 			end
 		end
 	end, { ui.activeApp })
 
-	local removeFromLikeds = React.useCallback(function(id: number)
-		setLikedsAccs(function(prevLiked)
-			local newCart = {}
-			for _, itemId in ipairs(prevLiked) do
-				if itemId ~= id then
-					table.insert(newCart, itemId)
-				end
+	local addToLikes = React.useCallback(function(id: number)
+		setLikedsAccs(function(prev)
+			if table.find(prev, id) then
+				return prev
 			end
-			return newCart
+			local new = table.clone(prev)
+			table.insert(new, id)
+			return new
 		end)
 	end, {})
 
-	local addToLikes = React.useCallback(function(id: number)
-		setLikedsAccs(function(prevLiked)
-			if table.find(prevLiked, id) ~= nil then
-				return prevLiked
+	local removeFromLikeds = React.useCallback(function(id: number)
+		setLikedsAccs(function(prev)
+			local new = {}
+			for _, v in ipairs(prev) do
+				if v ~= id then
+					table.insert(new, v)
+				end
 			end
+			return new
+		end)
+	end, {})
 
-			local newCart = table.clone(prevLiked)
-			table.insert(newCart, id)
-			return newCart
+	local addToCart = React.useCallback(function(id: number)
+		setCart(function(prev)
+			if table.find(prev, id) then
+				return prev
+			end
+			local new = table.clone(prev)
+			table.insert(new, id)
+			return new
 		end)
 	end, {})
 
 	local removeFromCart = React.useCallback(function(id: number)
-		setCart(function(prevCart)
-			local newCart = {}
-			for _, itemId in ipairs(prevCart) do
-				if itemId ~= id then
-					table.insert(newCart, itemId)
+		setCart(function(prev)
+			local new = {}
+			for _, v in ipairs(prev) do
+				if v ~= id then
+					table.insert(new, v)
 				end
 			end
-			return newCart
+			return new
 		end)
 	end, {})
 
-	local removeAll = function()
-		setCart({})
-	end
-
 	return if ui.activeApp == APP_NAME
-		then React.createElement(ShoppingCart, {
+		then React.createElement(LikedAccessories, {
 			cart = cart,
+			onAddItem = addToCart,
 			onRemoveItem = removeFromCart,
-			removeAll = removeAll,
 			likedAccs = likedAccs,
 			removeFromLikeds = removeFromLikeds,
 			addToLikes = addToLikes,
@@ -666,4 +553,4 @@ local function ShoppingCartApp()
 		else nil
 end
 
-return ShoppingCartApp
+return LikedAccessoriesApp

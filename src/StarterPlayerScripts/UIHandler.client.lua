@@ -16,6 +16,9 @@ local LeftButtons = require(StarterPlayer.StarterPlayerScripts.Source.UI.LeftBut
 local RightButtons = require(StarterPlayer.StarterPlayerScripts.Source.UI.RightButtons)
 local SearchOutfit = require(StarterPlayer.StarterPlayerScripts.Source.UI.SearchOutfit)
 local ShoppingCart = require(StarterPlayer.StarterPlayerScripts.Source.UI.ShoppingCart)
+local LikedAccessories = require(StarterPlayer.StarterPlayerScripts.Source.UI.LikedAccessories)
+local SaveToRoblox = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveToRoblox)
+local SaveConfirm = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveConfirm)
 
 -- Variables
 local player = Players.LocalPlayer
@@ -36,6 +39,9 @@ local function AppRouter()
 		React.createElement(RightButtons),
 		React.createElement(SearchOutfit),
 		React.createElement(ShoppingCart),
+		React.createElement(LikedAccessories),
+		React.createElement(SaveToRoblox),
+		React.createElement(SaveConfirm),
 	})
 end
 

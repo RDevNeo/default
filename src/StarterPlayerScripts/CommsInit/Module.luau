@@ -12,10 +12,11 @@ return {
 	WearOutfit = clientComm:GetSignal("WearOutfit"),
 
 	-- Accessory
-	BuyAccessory = clientComm:GetSignal("buyAccessory"),
+	BuyAccessory = clientComm:GetSignal("BuyAccessory"),
 	AddToCart = clientComm:GetSignal("AddToCart"),
 	TryAccessory = clientComm:GetSignal("TryAccessory"),
-	LikeAccessory = clientComm:GetSignal("buyAccessory"),
+	LikeAccessory = clientComm:GetSignal("LikeAccessory"),
+	UnlikeAccessory = clientComm:GetSignal("UnlikeAccessory"),
 	RemoveToCart = clientComm:GetSignal("RemoveToCart"),
 	TakeOff = clientComm:GetSignal("TakeOff"),
 
@@ -27,4 +28,7 @@ return {
 	-- Remote Functions (Global, created by Rojo)
 	ProfileLoaded = clientComm:GetSignal("ProfileLoaded"),
 	GetCart = ReplicatedStorage.RF.GetCart,
+	GetLikedAccs = ReplicatedStorage.RF.GetLikedAccs,
+	GetOwnedAssets = ReplicatedStorage.RF.GetOwnedAssets,
+	GetRunConfig = ReplicatedStorage.RF.GetRunConfig,
 }

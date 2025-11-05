@@ -12,10 +12,11 @@ local signals = {
 	WearOutfit = serverComm:CreateSignal("WearOutfit"),
 
 	-- Accessory
-	BuyAccessory = serverComm:CreateSignal("buyAccessory"),
+	BuyAccessory = serverComm:CreateSignal("BuyAccessory"),
 	AddToCart = serverComm:CreateSignal("AddToCart"),
 	TryAccessory = serverComm:CreateSignal("TryAccessory"),
 	LikeAccessory = serverComm:CreateSignal("LikeAccessory"),
+	UnlikeAccessory = serverComm:CreateSignal("UnlikeAccessory"),
 	RemoveToCart = serverComm:CreateSignal("RemoveToCart"),
 	TakeOff = serverComm:CreateSignal("TakeOff"),
 
@@ -30,6 +31,9 @@ local signals = {
 	-- Remote Functions (Global, created by Rojo)
 	ProfileLoaded = serverComm:CreateSignal("ProfileLoaded"),
 	GetCart = ReplicatedStorage.RF.GetCart,
+	GetLikedAccs = ReplicatedStorage.RF.GetLikedAccs,
+	GetOwnedAssets = ReplicatedStorage.RF.GetOwnedAssets,
+	GetRunConfig = ReplicatedStorage.RF.GetRunConfig,
 }
 
 return signals
