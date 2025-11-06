@@ -19,6 +19,27 @@
         },
         "GetRunConfig": {
           "$className": "RemoteFunction"
+        },
+        "GetPlayerModelRange" : {
+          "$className": "RemoteFunction"
+        },
+        "GetMusicID" : {
+          "$className": "RemoteFunction"
+        },
+        "GetIntValues": {
+          "$className": "RemoteFunction"
+        },
+        "GetDonatedValue" : {
+          "$className": "RemoteFunction"
+        },
+        "GetOutfits": {
+          "$className" :"RemoteFunction"
+        },
+        "GetLikedOutfits" : {
+          "$className": "RemoteFunction"
+        },
+        "GetLikedOuftiObject" : {
+          "$className" :"RemoteFunction"
         }
       },
 

@@ -19,6 +19,8 @@ local ShoppingCart = require(StarterPlayer.StarterPlayerScripts.Source.UI.Shoppi
 local LikedAccessories = require(StarterPlayer.StarterPlayerScripts.Source.UI.LikedAccessories)
 local SaveToRoblox = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveToRoblox)
 local SaveConfirm = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveConfirm)
+local Donates = require(StarterPlayer.StarterPlayerScripts.Source.UI.Donates)
+local Likes = require(StarterPlayer.StarterPlayerScripts.Source.UI.Likes)
 
 -- Variables
 local player = Players.LocalPlayer
@@ -34,14 +36,16 @@ local root = ReactRoblox.createRoot(screenGui)
 
 local function AppRouter()
 	return React.createElement(UIContextProvider, {}, {
-		React.createElement(OutfitViewer),
 		React.createElement(LeftButtons),
 		React.createElement(RightButtons),
+		React.createElement(OutfitViewer),
 		React.createElement(SearchOutfit),
 		React.createElement(ShoppingCart),
 		React.createElement(LikedAccessories),
 		React.createElement(SaveToRoblox),
 		React.createElement(SaveConfirm),
+		React.createElement(Donates),
+		React.createElement(Likes),
 	})
 end
 

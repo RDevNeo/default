@@ -52,6 +52,16 @@ local function SaveConfirm(props: {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
 			}),
+
+			React.createElement("UIStroke", {
+				Thickness = 3,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Color = Color3.new(
+					math.clamp(Colors.accentColor.R * 0.7, 0, 1),
+					math.clamp(Colors.accentColor.G * 0.7, 0, 1),
+					math.clamp(Colors.accentColor.B * 0.7, 0, 1)
+				),
+			}),
 		}),
 
 		saveOutfit = React.createElement("TextButton", {
@@ -72,6 +82,16 @@ local function SaveConfirm(props: {
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
+			}),
+
+			React.createElement("UIStroke", {
+				Thickness = 3,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Color = Color3.new(
+					math.clamp(Colors.secondaryColor.R * 0.7, 0, 1),
+					math.clamp(Colors.secondaryColor.G * 0.7, 0, 1),
+					math.clamp(Colors.secondaryColor.B * 0.7, 0, 1)
+				),
 			}),
 		}),
 

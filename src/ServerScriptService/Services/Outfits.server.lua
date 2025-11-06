@@ -1,17 +1,14 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
-local OutfitsMT = require(ServerStorage.Source.Outfits.Handlers.OutfitsMT)
-local Signals = require(ServerScriptService.Source.CommsInit.Module)
+local OutfitsMT = require(ServerStorage.Source.Outfits.OutfitsMT)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local DataManager = require(ServerStorage.Source.Datastore.DataManager)
+local Net = require(ReplicatedStorage.Packages.Net)
 
-for i, outfit in ipairs(OutfitsMT.GetAllOutfits()) do
-	print(string.format("  Outfit %d: Name=%s, Code=%s", i, outfit.Name, outfit.Code))
-end
+type Outfit = OutfitsMT.Outfit
 
-local ownershipCache = {} -- [player.UserId] = { [assetId] = true/false }
+local ownershipCache = {}
 
 local function checkOwnershipAsync(player, ids)
 	local uid = player.UserId
@@ -34,32 +31,56 @@ local function checkOwnershipAsync(player, ids)
 	return results
 end
 
-Signals.BuyOutfit:Connect(function(player: Player, ids: { number })
-	print(player.Name)
-	print(ids)
-end)
+local function IntHelpers()
+	local Donates = ServerStorage:FindFirstChild("Configuration"):FindFirstChild("Donates") :: Folder
+	if not Donates then
+		return {}
+	end
 
-Signals.WearOutfit:Connect(function(player: Player, ids: { number })
+	local result = {}
+
+	for _, int in ipairs(Donates:GetChildren()) do
+		if int:IsA("IntValue") then
+			table.insert(result, {
+				name = int.Name,
+				id = int.Value,
+				amount = tonumber(int.Name:match("%d+")),
+			})
+		end
+	end
+
+	table.sort(result, function(a, b)
+		return a.amount < b.amount
+	end)
+
+	return result
+end
+
+-- Remote Functions
+Net:Connect("WearOutfit", function(player, code: string)
 	if not player then
 		return
 	end
 
-	for index, assetId in pairs(ids) do
-		OutfitHelper.addAccessory(player, assetId)
+	local character = player.Character
+	local Humanoid = character:FindFirstChildWhichIsA("Humanoid")
+
+	if code then
+		local Outfit: Model? = OutfitsMT:GetOutfitByCode(code)
+
+		if Outfit then
+			local outfitHumanoid = Outfit:FindFirstChildWhichIsA("Humanoid")
+
+			if outfitHumanoid then
+				local newDesc = outfitHumanoid:GetAppliedDescription()
+
+				Humanoid:ApplyDescription(newDesc)
+			end
+		end
 	end
 end)
 
-Signals.BuyAccessory:Connect(function(player: Player, id: number)
-	if not player then
-		return
-	end
-	if not id then
-		return
-	end
-	print(player.Name .. " ID >" .. tostring(id) .. " > BUY ACCESSORY")
-end)
-
-Signals.AddToCart:Connect(function(player: Player, id: number)
+Net:Connect("AddToCart", function(player, id)
 	if not player then
 		return
 	end
@@ -69,7 +90,7 @@ Signals.AddToCart:Connect(function(player: Player, id: number)
 	DataManager.AddCart(player, id)
 end)
 
-Signals.TryAccessory:Connect(function(player: Player, id: number)
+Net:Connect("TryAccessory", function(player, id)
 	if not player then
 		return
 	end
@@ -79,7 +100,7 @@ Signals.TryAccessory:Connect(function(player: Player, id: number)
 	OutfitHelper.addAccessory(player, id)
 end)
 
-Signals.LikeAccessory:Connect(function(player: Player, id: number)
+Net:Connect("LikeAccessory", function(player, id)
 	if not player then
 		return
 	end
@@ -89,7 +110,7 @@ Signals.LikeAccessory:Connect(function(player: Player, id: number)
 	DataManager.AddLikedAccessory(player, id)
 end)
 
-Signals.UnlikeAccessory:Connect(function(player: Player, id: number)
+Net:Connect("UnlikeAccessory", function(player, id)
 	if not player then
 		return
 	end
@@ -99,11 +120,7 @@ Signals.UnlikeAccessory:Connect(function(player: Player, id: number)
 	DataManager.RemoveLikedAccessory(player, id)
 end)
 
-Signals.TakeOff:Connect(function(player: Player, id: number)
-	OutfitHelper.removeAccessory(player, id)
-end)
-
-Signals.RemoveToCart:Connect(function(player: Player, id: number | { number })
+Net:Connect("RemoveToCart", function(player, id)
 	if type(id) == "number" then
 		DataManager.RemoveCart(player, id)
 	else
@@ -113,32 +130,92 @@ Signals.RemoveToCart:Connect(function(player: Player, id: number | { number })
 	end
 end)
 
-Signals.GetCart.OnServerInvoke = function(player: Player): { number? }
+Net:Connect("TakeOff", function(player, id)
+	OutfitHelper.removeAccessory(player, id)
+end)
+
+Net:Connect("AddOutfitLike", function(player, code)
+	DataManager.AddLikedOutfit(player, code)
+end)
+
+Net:Connect("RemoveOutfitLike", function(player, code)
+	DataManager.RemoveLikedOutfit(player, code)
+end)
+
+Net:Connect("Warn", function(player, msg)
+	print(msg)
+end)
+
+Net:Connect("Reset", function(player: Player)
+	player:LoadCharacter()
+end)
+
+-- Remote Functions
+Net:Handle("GetCart", function(player)
 	return DataManager.GetCart(player)
-end
+end)
 
-Signals.GetLikedAccs.OnServerInvoke = function(player): { number? }
+Net:Handle("GetLikedAccs", function(player)
 	return DataManager.GetLikedAccessories(player)
-end
+end)
 
-Signals.GetOwnedAssets.OnServerInvoke = function(player: Player, ids: { number }): { [number]: boolean }
-	print(checkOwnershipAsync(player, ids))
+Net:Handle("GetLikedOutfits", function(player)
+	return DataManager.GetLikedOutfits(player)
+end)
+
+Net:Handle("GetOwnedAssets", function(player, ids)
 	return checkOwnershipAsync(player, ids)
-end
+end)
 
-Signals.GetRunConfig.OnServerInvoke = function(player: Player): number
-	local Configuration = ServerStorage:FindFirstChild("Configuration")
+Net:Handle("GetOutfits", function(player)
+	local outfits = OutfitsMT:GetAllOutfits()
+	return outfits
+end)
 
-	if not Configuration then
-		warn("Could not find the folder Configuration on Server Storage, applying default as 32.")
-		return 32
+Net:Handle("GetLikedOuftiObject", function(player, likedOutfits: { string })
+	local allOutfits = OutfitsMT:GetAllOutfits()
+
+	local result = {}
+
+	for _, outfit in pairs(allOutfits) do
+		local code = tostring(outfit.Code)
+
+		if table.find(likedOutfits, code) then
+			table.insert(result, outfit)
+		end
 	end
 
-	local intValue = Configuration:FindFirstChild("RUN_SPEED")
+	return result
+end)
 
-	if intValue and intValue:IsA("IntValue") then
-		return intValue.Value
+Net:Handle("GetDonatedValue", function(player)
+	return DataManager.GetDonated(player)
+end)
+
+Net:Handle("GetIntValues", function(player)
+	return IntHelpers()
+end)
+
+Net:Handle("GetRunConfig", function(player)
+	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("RUN_SPEED").Value
+end)
+
+Net:Handle("GetPlayerModelRange", function(player)
+	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("PLAYER_MODEL_RANGE").Value
+end)
+
+Net:Handle("GetMusicID", function(player)
+	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("DEFAULT_MUSIC_ID").Value
+end)
+
+Net:Handle("GetModelByCode", function(player, code: string)
+	local outfits = OutfitsMT:GetAllOutfits()
+
+	for index, value in pairs(outfits) do
+		if value.Code == code then
+			return value
+		end
 	end
-	warn("Could not find the RUN_SPEED configuration, applying default as 32.")
-	return 32
-end
+
+	return
+end)

@@ -2,7 +2,7 @@
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Dependencies
-local InternalEnum = require(ServerStorage.Source.Configs.InternalEnum)
+local InternalEnum = require(script.Parent.InternalEnum)
 
 local module = {}
 
@@ -28,28 +28,6 @@ local function isAllIntValues(table: { any }): boolean
 	end
 
 	return true
-end
-
-module.GetPortalPlaceIds = function(): { IntValue }
-	local configurationFolder = GetConfigurationFolder()
-
-	local portalPlaceIdsFolder = configurationFolder:FindFirstChild("Portals")
-
-	if not portalPlaceIdsFolder then
-		return error("Portal place ids folder not found")
-	end
-
-	if not portalPlaceIdsFolder:IsA("Folder") then
-		return error("Portal place ids folder is not a folder")
-	end
-
-	local portalPlaceIds = portalPlaceIdsFolder:GetChildren()
-
-	if not isAllIntValues(portalPlaceIds) then
-		return error("All portal place ids must be IntValues")
-	end
-
-	return portalPlaceIds :: { IntValue }
 end
 
 module.GetBadges = function(): {

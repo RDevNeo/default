@@ -42,7 +42,7 @@ local function Initialize(player: Player, profile: typeof(PlayerStore:StartSessi
 end
 
 local function PlayerAdded(player: Player)
-	local profile = PlayerStore:StartSessionAsync("Player" .. player.UserId, {
+	local profile = PlayerStore:StartSessionAsync("Player1" .. player.UserId, {
 		Cancel = function()
 			return player.Parent ~= Players
 		end,
@@ -64,14 +64,14 @@ local function PlayerAdded(player: Player)
 		DataManager.Profiles[player] = profile
 		Initialize(player, profile)
 
-		Signals.ProfileLoaded:Fire(player)
+		Signals.ProfileLoaded:FireClient(player)
 	else
 		profile:EndSession()
 	end
 end
 
 task.spawn(function()
-	local GlobalCodesProfile = ServerStore:StartSessionAsync("GlobalCodes", {
+	local GlobalCodesProfile = ServerStore:StartSessionAsync("GlobalCodes1", {
 		Cancel = function()
 			return false
 		end,
@@ -85,7 +85,7 @@ task.spawn(function()
 		DataManager.GlobalCodes = GlobalCodesProfile
 	end
 
-	GlobalMetricsProfile = ServerStore:StartSessionAsync("GlobalMetrics", {
+	GlobalMetricsProfile = ServerStore:StartSessionAsync("GlobalMetrics1", {
 		Cancel = function()
 			return false
 		end,

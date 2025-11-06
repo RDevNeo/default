@@ -10,4 +10,5 @@ Comm = "sleitnick/comm@1.0.1"
 ReactRoblox = "jsdotlua/react-roblox@17.2.1"
 React = "jsdotlua/react@17.2.1"
 Signal = "sleitnick/signal@^1"
+Net = "sleitnick/net@0.2.0"
 

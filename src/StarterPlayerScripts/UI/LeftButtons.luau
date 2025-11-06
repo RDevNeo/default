@@ -3,25 +3,25 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 -- Dependencies
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local Humanoid = character.Humanoid :: Humanoid
 
-local createButton = function(
-	props: {
-		Name: string, -- dynamic text label (reactive)
-		Order: number,
-		onPress: ((Instance?) -> ())?,
-	}
-)
+local createButton = function(props: {
+	Name: string,
+	Order: number,
+	onPress: ((Instance?) -> ())?,
+})
 	return React.createElement("TextButton", {
 		Size = UDim2.fromScale(0.9, 0.07),
 		Name = props.Name,
@@ -55,6 +55,7 @@ end
 
 local function ShopApp()
 	local run, setRun = React.useState(false)
+	local music, setMusic = React.useState(true)
 	local ui = useUIContext()
 
 	local function toggleRun()
@@ -63,9 +64,48 @@ local function ShopApp()
 		end)
 	end
 
+	local function toggleMusic()
+		setMusic(function(prev)
+			return not prev
+		end)
+	end
+
+	local function onDonate()
+		ui.openApp("Donates")
+	end
+
+	local function onReset()
+		Signals.Reset:FireServer()
+	end
+
+	local function onLikes()
+		ui.openApp("Likes")
+	end
+
+	React.useEffect(function()
+		local musicSound: Sound = Workspace:FindFirstChild("BackgroundSound")
+		local soundId: number = Net:Invoke("GetMusicID")
+
+		if not soundId or soundId == 0 then
+			return warn("Sound id not configured.")
+		end
+		if not musicSound then
+			return warn("No music sound found in Workspace with the name of: 'BackgroundSound' ")
+		end
+
+		musicSound.SoundId = "rbxassetid://" .. tostring(soundId)
+
+		if music then
+			musicSound:Resume()
+		else
+			musicSound:Pause()
+		end
+		return
+	end, { music })
+
 	React.useEffect(function()
 		if run then
-			Humanoid.WalkSpeed = Signals.GetRunConfig:InvokeServer()
+			Humanoid.WalkSpeed = Net:Invoke("GetRunConfig")
 		else
 			Humanoid.WalkSpeed = 16
 		end
@@ -105,10 +145,15 @@ local function ShopApp()
 				onPress = toggleRun,
 			}),
 
-			Donate = React.createElement(createButton, { Name = "Donate", Order = 1, onPress = print }),
-			Likes = React.createElement(createButton, { Name = "Likes", Order = 2, onPress = print }),
-			Reset = React.createElement(createButton, { Name = "Reset", Order = 3, onPress = print }),
-			MusicOff = React.createElement(createButton, { Name = "Toggle Music", Order = 5, onPress = print }),
+			Music = React.createElement(createButton, {
+				Name = music and "Music Off" or "Music On",
+				Order = 5,
+				onPress = toggleMusic,
+			}),
+
+			Donate = React.createElement(createButton, { Name = "Donate", Order = 1, onPress = onDonate }),
+			Likes = React.createElement(createButton, { Name = "Likes", Order = 2, onPress = onLikes }),
+			Reset = React.createElement(createButton, { Name = "Reset", Order = 3, onPress = onReset }),
 		})
 		else nil
 end

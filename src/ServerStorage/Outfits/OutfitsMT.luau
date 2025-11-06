@@ -1,17 +1,17 @@
 local CollectionService = game:GetService("CollectionService")
-local ServerScriptService = game:GetService("ServerScriptService")
-local Signals = require(ServerScriptService.Source.CommsInit.Module)
+local Workspace = game:GetService("Workspace")
 
 local Outfits = {}
 Outfits.__index = Outfits
 
-type Outfit = {
+export type Outfit = {
 	Name: string,
 	Code: string,
 	Model: Model,
 	Prompt: ProximityPrompt,
 	Click: ClickDetector,
 	Highlight: Highlight,
+	CameraPart: Part,
 } & typeof(Outfits)
 
 local allOutfits: { Outfit } = {}
@@ -70,30 +70,22 @@ function Outfits.new(model: Model): Outfit
 	self.Highlight.FillTransparency = 0.9
 	self.Highlight.Enabled = false
 
-	-- Logics
-	self.Prompt.PromptShown:Connect(function()
-		self.Highlight.Enabled = true
-	end)
+	-- Camera Part
+	self.CameraPart = Instance.new("Part", model) :: Part
+	self.CameraPart.Name = "cameraPart"
+	self.CameraPart.Size = Vector3.new(1, 1, 1)
+	self.CameraPart.Transparency = 1
+	self.CameraPart.CanCollide = false
+	self.CameraPart.CanTouch = false
+	self.CameraPart.Anchored = true
+	self.CameraPart:SetAttribute("Code", self.Code)
+	local root = self.Model.PrimaryPart
+	local offset = 4
 
-	self.Prompt.PromptHidden:Connect(function()
-		self.Highlight.Enabled = false
-	end)
+	local pos = root.Position + (root.CFrame.LookVector * offset)
+	local look = pos + root.CFrame.LookVector
 
-	self.Prompt.Triggered:Connect(function(player)
-		Signals.OpenOutfit:Fire(player, self.Code)
-	end)
-
-	self.Click.MouseClick:Connect(function(playerWhoTriggered)
-		Signals.OpenOutfit:Fire(playerWhoTriggered, self.Code)
-	end)
-
-	self.Click.MouseHoverEnter:Connect(function()
-		self.Highlight.Enabled = true
-	end)
-
-	self.Click.MouseHoverLeave:Connect(function()
-		self.Highlight.Enabled = false
-	end)
+	self.CameraPart:PivotTo(CFrame.new(pos, look))
 
 	table.insert(allOutfits, self)
 
@@ -104,22 +96,5 @@ end
 for _, model in ipairs(CollectionService:GetTagged("Outfit")) do
 	Outfits.new(model)
 end
-
--- Single connection for outfit code lookups (avoid per-instance duplication)
-Signals.OutfitCodeInputed:Connect(function(player: Player, code: string)
-	if player and code then
-		if Outfits:IsOutfit(code) then
-			Signals.OpenOutfit:Fire(player, string.upper(code))
-		else
-			local msg = "No Outfit found with that code!"
-			Signals.Warn:Fire(player, msg)
-			return
-		end
-	end
-end)
-
--- Function to get all the model clothes or the desc
-
--- Function to get all the items (accs and clothes) in the formated table to prompt purchase.
 
 return Outfits

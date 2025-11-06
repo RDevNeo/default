@@ -9,6 +9,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -197,7 +198,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.BuyAccessory:Fire(id)
+										Signals.PromptSinglePurchase:Fire(id)
 									end,
 								}, {
 									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
@@ -217,7 +218,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										toggleWearing(id, false)
-										Signals.TakeOff:Fire(tonumber(id))
+										Signals.TakeOff:FireServer(tonumber(id))
 									end,
 								}, {
 									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
@@ -235,7 +236,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										toggleWearing(id, true)
-										Signals.TryAccessory:Fire(id)
+										Signals.TryAccessory:FireServer(id)
 									end,
 								}, {
 									React.createElement("UICorner", { CornerRadius = UDim.new(0.2, 0) }),
@@ -252,7 +253,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										props.onRemoveItem(id)
-										Signals.RemoveToCart:Fire(id)
+										Signals.RemoveToCart:FireServer(id)
 									end,
 								}) or React.createElement("ImageButton", {
 									Name = "AddCart" .. id,
@@ -266,7 +267,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										props.onAddItem(id)
-										Signals.AddToCart:Fire(id)
+										Signals.AddToCart:FireServer(id)
 									end,
 								}),
 
@@ -282,7 +283,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										props.removeFromLikeds(id)
-										Signals.UnlikeAccessory:Fire(id)
+										Signals.UnlikeAccessory:FireServer(id)
 									end,
 								}) or React.createElement("ImageButton", {
 									Name = "AddLike" .. id,
@@ -296,7 +297,7 @@ local function createScrollingFrame(props: {
 
 									[React.Event.Activated] = function()
 										props.addToLikes(id)
-										Signals.LikeAccessory:Fire(id)
+										Signals.LikeAccessory:FireServer(id)
 									end,
 								}),
 
@@ -374,6 +375,7 @@ local function createScrollingFrame(props: {
 			BackgroundTransparency = 1,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
+			BorderSizePixel = 0,
 		}, children)
 	end
 
@@ -480,8 +482,8 @@ local function LikedAccessoriesApp()
 
 	React.useEffect(function()
 		if ui.activeApp == APP_NAME then
-			local fetchedCart = Signals.GetCart:InvokeServer()
-			local fetchedLikeds = Signals.GetLikedAccs:InvokeServer()
+			local fetchedCart = Net:Invoke("GetCart")
+			local fetchedLikeds = Net:Invoke("GetLikedAccs")
 			if fetchedCart then
 				setCart(fetchedCart)
 			end

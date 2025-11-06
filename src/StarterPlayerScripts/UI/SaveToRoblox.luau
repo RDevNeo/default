@@ -9,6 +9,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -28,7 +29,7 @@ local function createScrollingFrame(props: {
 		if not props.ids then
 			return
 		end
-		local result = Signals.GetOwnedAssets:InvokeServer(props.ids)
+		local result = Net:Invoke("GetOwnedAssets", props.ids)
 
 		local converted = {}
 		for key, value in pairs(result) do
@@ -277,6 +278,7 @@ local function createScrollingFrame(props: {
 			BackgroundTransparency = 1,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
+			BorderSizePixel = 0,
 		}, children)
 	end
 	return nil
@@ -467,7 +469,7 @@ local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 
 				[React.Event.Activated] = function(instance)
-					Signals.BuyOutfit:Fire(ids)
+					Signals.BuyOutfit:FireServer(ids)
 					props.onClose()
 				end,
 			}, {

@@ -1,5 +1,4 @@
 -- Services
-local CollectionService = game:GetService("CollectionService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,23 +9,13 @@ local React = require(ReplicatedStorage.Packages.React)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 
 -- Cache
 local productInfoCache: { [number]: any } = {}
-
-local function getModelByCode(code: string): Model?
-	local allModels = CollectionService:GetTagged("Outfit")
-
-	for index, model in pairs(allModels) do
-		if model:GetAttribute("Code") == code then
-			return model:Clone()
-		end
-	end
-	return nil
-end
 
 local function createScrollingFrame(props: {
 	ids: { number },
@@ -230,7 +219,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.BuyAccessory:Fire(id)
+										Signals.PromptSinglePurchase:Fire(id)
 									end,
 								}, {
 
@@ -252,7 +241,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TakeOff:Fire(tonumber(id))
+										Signals.TakeOff:FireServer(tonumber(id))
 										toggleWearing(id, false)
 									end,
 								}, {
@@ -272,7 +261,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TryAccessory:Fire(id)
+										Signals.TryAccessory:FireServer(id)
 										toggleWearing(id, true)
 									end,
 								}, {
@@ -293,7 +282,7 @@ local function createScrollingFrame(props: {
 											ZIndex = 2,
 
 											[React.Event.Activated] = function(instance)
-												Signals.RemoveToCart:Fire(id)
+												Signals.RemoveToCart:FireServer(id)
 												props.removeFromCart(id)
 											end,
 											-- Add to Cart
@@ -309,7 +298,7 @@ local function createScrollingFrame(props: {
 										ZIndex = 2,
 
 										[React.Event.Activated] = function(instance)
-											Signals.AddToCart:Fire(id)
+											Signals.AddToCart:FireServer(id)
 											props.addToCart(id)
 										end,
 									}),
@@ -325,7 +314,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.UnlikeAccessory:Fire(id)
+										Signals.UnlikeAccessory:FireServer(id)
 										props.removeFromLikeds(id)
 									end,
 								}) or React.createElement("ImageButton", {
@@ -339,7 +328,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.LikeAccessory:Fire(id)
+										Signals.LikeAccessory:FireServer(id)
 										props.addToLikes(id)
 									end,
 								}),
@@ -422,6 +411,7 @@ local function createScrollingFrame(props: {
 			BackgroundTransparency = 1,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
+			BorderSizePixel = 0,
 		}, children)
 	end
 	return nil
@@ -429,6 +419,7 @@ end
 
 local function OutfitViewer(props: {
 	code: string,
+	model: Model,
 	cart: { number },
 	removeFromCart: (number) -> (),
 	likedAccs: { number },
@@ -436,6 +427,9 @@ local function OutfitViewer(props: {
 	removeFromLikeds: (number) -> (),
 	addToCart: (id: number) -> (),
 	onClose: () -> (),
+	likeOutfit: (string) -> (),
+	unlikeOutfit: (string) -> (),
+	likedOutfits: { string },
 }): Frame?
 	local viewportRef = React.useRef(nil)
 	local modelRef = React.useRef(nil :: Model?)
@@ -443,6 +437,7 @@ local function OutfitViewer(props: {
 	local totalCost, setTotalCost = React.useState(0)
 	local current, setCurrent = React.useState(nil :: number?)
 	local hovered, setHovered = React.useState(nil :: number?)
+	local isLiked = table.find(props.likedOutfits, props.code) ~= nil
 
 	React.useEffect(function()
 		local viewportFrame = viewportRef.current
@@ -455,7 +450,7 @@ local function OutfitViewer(props: {
 			modelRef.current = nil
 		end
 
-		local model = getModelByCode(props.code)
+		local model = props.model:Clone()
 
 		modelRef.current = model
 		if model then
@@ -611,6 +606,32 @@ local function OutfitViewer(props: {
 						}),
 						Rotation = -90,
 					}),
+
+					isLiked and props.code and React.createElement("ImageButton", {
+						Name = "Liked",
+						ImageColor3 = Color3.fromRGB(255, 255, 255),
+						Image = "rbxassetid://113364820523022",
+						Position = UDim2.fromScale(0.78, 0.02),
+						Size = UDim2.fromScale(0.15, 0.12),
+						BackgroundTransparency = 1,
+
+						[React.Event.Activated] = function(rbx)
+							props.unlikeOutfit(props.code)
+							Signals.RemoveOutfitLike:FireServer(props.code)
+						end,
+					}) or React.createElement("ImageButton", {
+						Name = "Not Liked",
+						Image = "rbxassetid://113364820523022",
+						ImageColor3 = Color3.fromRGB(40, 40, 40),
+						Position = UDim2.fromScale(0.78, 0.02),
+						Size = UDim2.fromScale(0.15, 0.12),
+						BackgroundTransparency = 1,
+
+						[React.Event.Activated] = function(rbx)
+							props.likeOutfit(props.code)
+							Signals.AddOutfitLike:FireServer(props.code)
+						end,
+					}),
 				}),
 
 				BuyOutfit = React.createElement("TextButton", {
@@ -623,7 +644,7 @@ local function OutfitViewer(props: {
 					TextColor3 = Color3.fromRGB(255, 255, 255),
 
 					[React.Event.Activated] = function(instance)
-						Signals.BuyOutfit:Fire(ids)
+						Signals.BuyOutfit:FireServer(ids)
 						props.onClose()
 					end,
 				}, {
@@ -648,7 +669,7 @@ local function OutfitViewer(props: {
 
 					[React.Event.Activated] = function(instance)
 						props.onClose()
-						Signals.WearOutfit:Fire(ids)
+						Signals.WearOutfit:FireServer(props.code)
 					end,
 				}, {
 					React.createElement("UICorner", {
@@ -697,7 +718,7 @@ local function OutfitViewer(props: {
 				Font = Enum.Font.FredokaOne,
 				Position = UDim2.fromScale(0.035, 0),
 				Size = UDim2.fromScale(0.29, 1),
-				Text = "Total Cost: " .. tostring(totalCost) .. utf8.char(0xE002),
+				Text = "Total Cost: " .. utf8.char(0xE002) .. tostring(totalCost),
 				TextColor3 = Colors.textColor,
 				TextScaled = true,
 			}),
@@ -735,31 +756,23 @@ local function OutfitApp()
 	local outfitCode, setOutfitCode = React.useState("")
 	local cart, setCart = React.useState({} :: { number })
 	local likedAccs, setLikedsAccs = React.useState({} :: { number })
+	local likedOutfits, setLikedOutfits = React.useState({} :: { number })
+	local model, setModel = React.useState(nil)
 
 	local APP_NAME = "OutfitViewer"
 
 	React.useEffect(function()
 		if ui.activeApp == APP_NAME then
-			local fetchedCart = Signals.GetCart:InvokeServer()
-			local fetchedLikeds = Signals.GetLikedAccs:InvokeServer()
+			local fetchedCart = Net:Invoke("GetCart")
+			local fetchedLikedOutfits = Net:Invoke("GetLikedOutfits")
+			local fetchedLikeds = Net:Invoke("GetLikedAccs")
 			if fetchedCart and fetchedLikeds then
 				setCart(fetchedCart)
+				setLikedOutfits(fetchedLikedOutfits)
 				setLikedsAccs(fetchedLikeds)
 			end
 		end
 	end, { ui.activeApp })
-
-	local removeFromLikeds = React.useCallback(function(id: number)
-		setLikedsAccs(function(prevLiked)
-			local newCart = {}
-			for _, itemId in ipairs(prevLiked) do
-				if itemId ~= id then
-					table.insert(newCart, itemId)
-				end
-			end
-			return newCart
-		end)
-	end, {})
 
 	local addToLikes = React.useCallback(function(id: number)
 		setLikedsAccs(function(prevLiked)
@@ -773,10 +786,10 @@ local function OutfitApp()
 		end)
 	end, {})
 
-	local removeFromCart = React.useCallback(function(id: number)
-		setCart(function(prevCart)
+	local removeFromLikeds = React.useCallback(function(id: number)
+		setLikedsAccs(function(prevLiked)
 			local newCart = {}
-			for _, itemId in ipairs(prevCart) do
+			for _, itemId in ipairs(prevLiked) do
 				if itemId ~= id then
 					table.insert(newCart, itemId)
 				end
@@ -797,26 +810,69 @@ local function OutfitApp()
 		end)
 	end, {})
 
+	local removeFromCart = React.useCallback(function(id: number)
+		setCart(function(prevCart)
+			local newCart = {}
+			for _, itemId in ipairs(prevCart) do
+				if itemId ~= id then
+					table.insert(newCart, itemId)
+				end
+			end
+			return newCart
+		end)
+	end, {})
+
+	local likeOutfit = React.useCallback(function(code: string)
+		setLikedOutfits(function(prev)
+			local new = table.clone(prev)
+			table.insert(new, code)
+			return new
+		end)
+	end, {})
+
+	local unlikeOutfit = React.useCallback(function(code: string)
+		setLikedOutfits(function(prev)
+			local new = table.clone(prev)
+			local index = table.find(new, code)
+			if index then
+				table.remove(new, index)
+			end
+			return new
+		end)
+	end)
+
 	React.useEffect(function()
-		local connection = Signals.OpenOutfit:Connect(function(code: string)
+		local connection = Signals.OpenOutfit:Connect(function(code: string, model: Model)
 			setOutfitCode(code)
+			setModel(model)
+			ui.openApp(APP_NAME)
+		end)
+
+		local otherConnection = Signals.OpenFromSearch:Connect(function(code: string, model: Model)
+			setOutfitCode(code)
+			setModel(model)
 			ui.openApp(APP_NAME)
 		end)
 
 		return function()
 			connection:Disconnect()
+			otherConnection:Disconnect()
 		end
 	end, {})
 
 	return if ui.activeApp == APP_NAME and outfitCode ~= ""
 		then React.createElement(OutfitViewer, {
 			code = outfitCode,
+			model = model,
 			cart = cart,
 			likedAccs = likedAccs,
 			removeFromCart = removeFromCart,
 			addToCart = addToCart,
 			removeFromLikeds = removeFromLikeds,
 			addToLikes = addToLikes,
+			likeOutfit = likeOutfit,
+			unlikeOutfit = unlikeOutfit,
+			likedOutfits = likedOutfits,
 			onClose = function()
 				ui.closeApp()
 				setOutfitCode("")

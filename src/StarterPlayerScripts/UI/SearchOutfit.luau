@@ -5,12 +5,23 @@ local StarterPlayer = game:GetService("StarterPlayer")
 -- Dependencies
 local React = require(ReplicatedStorage.Packages.React)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 
 -- Color
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+
+type Outfit = {
+	Name: string,
+	Code: string,
+	Model: Model,
+	Prompt: ProximityPrompt,
+	Click: ClickDetector,
+	Highlight: Highlight,
+	CameraPart: Part,
+}
 
 local function SearchOutfit(props: { onClose: () -> () })
 	local code, setCode = React.useState(nil)
@@ -28,7 +39,8 @@ local function SearchOutfit(props: { onClose: () -> () })
 
 		if inputText and inputText ~= "" then
 			debounceRef.current = task.delay(DEBOUNCE_SECONDS, function()
-				Signals.OutfitCodeInputed:Fire(string.upper(inputText))
+				local Outfit: Outfit = Net:Invoke("GetModelByCode", string.upper(inputText))
+				Signals.OpenFromSearch:Fire(Outfit.Code, Outfit.Model)
 				debounceRef.current = nil
 			end)
 		end

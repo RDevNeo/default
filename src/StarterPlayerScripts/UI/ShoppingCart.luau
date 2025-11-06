@@ -9,6 +9,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -206,7 +207,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.BuyAccessory:Fire(id)
+										Signals.PromptSinglePurchase:Fire(id)
 									end,
 								}, {
 
@@ -228,7 +229,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TakeOff:Fire(tonumber(id))
+										Signals.TakeOff:FireServer(tonumber(id))
 										toggleWearing(id, false)
 									end,
 								}, {
@@ -248,7 +249,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function()
-										Signals.TryAccessory:Fire(id)
+										Signals.TryAccessory:FireServer(id)
 										toggleWearing(id, true)
 									end,
 								}, {
@@ -268,7 +269,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.RemoveToCart:Fire(id)
+										Signals.RemoveToCart:FireServer(id)
 										props.onRemoveItem(id)
 									end,
 								}),
@@ -284,7 +285,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.UnlikeAccessory:Fire(id)
+										Signals.UnlikeAccessory:FireServer(id)
 										props.removeFromLikeds(id)
 									end,
 								}) or React.createElement("ImageButton", {
@@ -298,7 +299,7 @@ local function createScrollingFrame(props: {
 									ZIndex = 2,
 
 									[React.Event.Activated] = function(instance)
-										Signals.LikeAccessory:Fire(id)
+										Signals.LikeAccessory:FireServer(id)
 										props.addToLikes(id)
 									end,
 								}),
@@ -382,6 +383,7 @@ local function createScrollingFrame(props: {
 			BackgroundTransparency = 1,
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			VerticalScrollBarInset = Enum.ScrollBarInset.Always,
+			BorderSizePixel = 0,
 		}, children)
 	end
 	return nil
@@ -532,7 +534,7 @@ local function ShoppingCart(props: {
 
 				[React.Event.Activated] = function(rbx)
 					props.removeAll()
-					Signals.RemoveToCart:Fire(props.cart)
+					Signals.RemoveToCart:FireServer(props.cart)
 				end,
 			}, {
 				React.createElement("UICorner", {
@@ -596,20 +598,17 @@ local function ShoppingCartApp()
 	local ui = useUIContext()
 	local cart, setCart = React.useState({} :: { number })
 	local likedAccs, setLikedsAccs = React.useState({} :: { number })
-
 	local APP_NAME = "Shopping Cart"
-
 	React.useEffect(function()
 		if ui.activeApp == APP_NAME then
-			local fetchedCart = Signals.GetCart:InvokeServer()
-			local fetchedLikeds = Signals.GetLikedAccs:InvokeServer()
+			local fetchedCart = Net:Invoke("GetCart")
+			local fetchedLikeds = Net:Invoke("GetLikedAccs")
 			if fetchedCart and fetchedLikeds then
 				setCart(fetchedCart)
 				setLikedsAccs(fetchedLikeds)
 			end
 		end
 	end, { ui.activeApp })
-
 	local removeFromLikeds = React.useCallback(function(id: number)
 		setLikedsAccs(function(prevLiked)
 			local newCart = {}
@@ -621,19 +620,16 @@ local function ShoppingCartApp()
 			return newCart
 		end)
 	end, {})
-
 	local addToLikes = React.useCallback(function(id: number)
 		setLikedsAccs(function(prevLiked)
 			if table.find(prevLiked, id) ~= nil then
 				return prevLiked
 			end
-
 			local newCart = table.clone(prevLiked)
 			table.insert(newCart, id)
 			return newCart
 		end)
 	end, {})
-
 	local removeFromCart = React.useCallback(function(id: number)
 		setCart(function(prevCart)
 			local newCart = {}
@@ -645,11 +641,9 @@ local function ShoppingCartApp()
 			return newCart
 		end)
 	end, {})
-
 	local removeAll = function()
 		setCart({})
 	end
-
 	return if ui.activeApp == APP_NAME
 		then React.createElement(ShoppingCart, {
 			cart = cart,
@@ -658,7 +652,6 @@ local function ShoppingCartApp()
 			likedAccs = likedAccs,
 			removeFromLikeds = removeFromLikeds,
 			addToLikes = addToLikes,
-
 			onClose = function()
 				ui.closeApp()
 			end,

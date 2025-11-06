@@ -1,34 +1,55 @@
 -- ReplicatedStorage/SharedModules/CommClient.lua
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Comm = require(ReplicatedStorage.Packages.Comm)
-
-local clientComm = Comm.ClientComm.new(ReplicatedStorage, false)
+local Signal = require(ReplicatedStorage.Packages.Signal)
+local Net = require(ReplicatedStorage.Packages.Net)
 
 return {
+	-- Bindables
+	OpenOutfit = Signal.new(),
+	OpenFromSearch = Signal.new(),
+	PromptSinglePurchase = Signal.new(),
+
 	-- Outfit
-	OpenOutfit = clientComm:GetSignal("OpenOutfit"),
-	BuyOutfit = clientComm:GetSignal("BuyOutfit"),
-	WearOutfit = clientComm:GetSignal("WearOutfit"),
+	BuyOutfit = Net:RemoteEvent("BuyOutfit"),
+	WearOutfit = Net:RemoteEvent("WearOutfit"),
 
 	-- Accessory
-	BuyAccessory = clientComm:GetSignal("BuyAccessory"),
-	AddToCart = clientComm:GetSignal("AddToCart"),
-	TryAccessory = clientComm:GetSignal("TryAccessory"),
-	LikeAccessory = clientComm:GetSignal("LikeAccessory"),
-	UnlikeAccessory = clientComm:GetSignal("UnlikeAccessory"),
-	RemoveToCart = clientComm:GetSignal("RemoveToCart"),
-	TakeOff = clientComm:GetSignal("TakeOff"),
+	AddToCart = Net:RemoteEvent("AddToCart"),
+	TryAccessory = Net:RemoteEvent("TryAccessory"),
+	LikeAccessory = Net:RemoteEvent("LikeAccessory"),
+	UnlikeAccessory = Net:RemoteEvent("UnlikeAccessory"),
+	RemoveToCart = Net:RemoteEvent("RemoveToCart"),
+	TakeOff = Net:RemoteEvent("TakeOff"),
 
+	-- Likes
+	AddOutfitLike = Net:RemoteEvent("AddOutfitLike"),
+	RemoveOutfitLike = Net:RemoteEvent("RemoveOutfitLike"),
 	-- Player
-	PlayerEntered = clientComm:GetSignal("PlayerEntered"),
-	OutfitCodeInputed = clientComm:GetSignal("OutfitCodeInputed"),
-	Warn = clientComm:GetSignal("Warn"),
+	PlayerEntered = Net:RemoteEvent("PlayerEntered"),
+	OutfitCodeInputed = Net:RemoteEvent("OutfitCodeInputed"),
+	Warn = Net:RemoteEvent("Warn"),
+	Reset = Net:RemoteEvent("Reset"),
 
-	-- Remote Functions (Global, created by Rojo)
-	ProfileLoaded = clientComm:GetSignal("ProfileLoaded"),
-	GetCart = ReplicatedStorage.RF.GetCart,
-	GetLikedAccs = ReplicatedStorage.RF.GetLikedAccs,
-	GetOwnedAssets = ReplicatedStorage.RF.GetOwnedAssets,
-	GetRunConfig = ReplicatedStorage.RF.GetRunConfig,
+	-- Internal Remotes Functions
+	ProfileLoaded = Net:RemoteEvent("ProfileLoaded"),
+	GetMusicID = Net:RemoteFunction("GetMusicID"),
+	GetPlayerModelRange = Net:RemoteFunction("GetPlayerModelRange"),
+	GetRunConfig = Net:RemoteFunction("GetRunConfig"),
+	GetDonatedValue = Net:RemoteFunction("GetDonatedValue"),
+	GetIntValues = Net:RemoteFunction("GetIntValues"),
+	GetCart = Net:RemoteFunction("GetCart"),
+	GetLikedAccs = Net:RemoteFunction("GetLikedAccs"),
+	GetLikedOutfits = Net:RemoteFunction("GetLikedOutfits"),
+	GetOwnedAssets = Net:RemoteFunction("GetOwnedAssets"),
+	GetOutfits = Net:RemoteFunction("GetOutfits"),
+	GetLikedOuftiObject = Net:RemoteFunction("GetLikedOuftiObject"),
+	GetModelByCode = Net:RemoteFunction("GetModelByCode"),
+
+	-- Global Events
+	SinglePurchaseMade = Net:RemoteEvent("SinglePurchaseMade"),
+	bulkPurchaseMade = Net:RemoteEvent("bulkPurchaseMade"),
+
+	-- Others
+	OnDonateClicked = Net:RemoteEvent("OnDonateClicked"),
 }
