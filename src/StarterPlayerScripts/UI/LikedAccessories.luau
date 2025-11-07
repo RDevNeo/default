@@ -10,6 +10,7 @@ local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Modu
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local Net = require(ReplicatedStorage.Packages.Net)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -387,16 +388,32 @@ local function LikedAccessories(props: {
 	likedAccs: { number } | {},
 	onAddItem: (number) -> (),
 	onRemoveItem: (number) -> (),
-	onClose: () -> (),
 	removeFromLikeds: (id: number) -> (),
 	addToLikes: (id: number) -> (),
 }): Frame?
 	local current, setCurrent = React.useState(nil)
 	local hovered, setHovered = React.useState(nil)
+	local ui = useUIContext()
+
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.8, 0.8),
+		speed = 20,
+		damper = 0.7,
+	})
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.8, 0.8) })
+	end, {})
 
 	return React.createElement("Frame", {
 		Name = "Liked Accessories",
-		Size = UDim2.fromScale(0.8, 0.8),
+		Size = size,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		BackgroundColor3 = Colors.primaryColor,
@@ -435,7 +452,7 @@ local function LikedAccessories(props: {
 			TextColor3 = Colors.textColor,
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = onClose,
 		}, {
 			React.createElement("UICorner", { CornerRadius = UDim.new(0.1, 0) }),
 			React.createElement("UIStroke", {
@@ -481,15 +498,17 @@ local function LikedAccessoriesApp()
 	local APP_NAME = "Liked Accessories"
 
 	React.useEffect(function()
-		if ui.activeApp == APP_NAME then
-			local fetchedCart = Net:Invoke("GetCart")
-			local fetchedLikeds = Net:Invoke("GetLikedAccs")
-			if fetchedCart then
-				setCart(fetchedCart)
-			end
-			if fetchedLikeds then
-				setLikedsAccs(fetchedLikeds)
-			end
+		if ui.activeApp ~= APP_NAME then
+			return
+		end
+
+		setCart(Net:Invoke("GetCart"))
+		setLikedsAccs(Net:Invoke("GetLikedAccs"))
+
+		if #likedAccs == 0 then
+			Signals.WarnSignal:Fire("You haven't liked any accessories yet.")
+			ui.closeApp()
+			return
 		end
 	end, { ui.activeApp })
 
@@ -539,20 +558,19 @@ local function LikedAccessoriesApp()
 		end)
 	end, {})
 
-	return if ui.activeApp == APP_NAME
-		then React.createElement(LikedAccessories, {
+	-- Render only if app is open AND liked list isn't empty
+	if ui.activeApp == APP_NAME and #likedAccs > 0 then
+		return React.createElement(LikedAccessories, {
 			cart = cart,
 			onAddItem = addToCart,
 			onRemoveItem = removeFromCart,
 			likedAccs = likedAccs,
 			removeFromLikeds = removeFromLikeds,
 			addToLikes = addToLikes,
-
-			onClose = function()
-				ui.closeApp()
-			end,
 		})
-		else nil
+	end
+
+	return nil
 end
 
 return LikedAccessoriesApp

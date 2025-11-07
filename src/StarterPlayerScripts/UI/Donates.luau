@@ -7,9 +7,50 @@ local React = require(ReplicatedStorage.Packages.React)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Net = require(ReplicatedStorage.Packages.Net)
-
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local HoverSound = ReplicatedStorage:WaitForChild("HoverSound") :: Sound
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
+
+local function DonateButton(props)
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0.75, 0.09),
+		target = UDim2.fromScale(0.75, 0.09),
+		speed = 18,
+		damper = 0.8,
+	})
+
+	local function onHover()
+		setSize({ target = UDim2.fromScale(0.83, 0.10) })
+		HoverSound:Play()
+	end
+
+	local function onUnhover()
+		setSize({ target = UDim2.fromScale(0.75, 0.09) })
+	end
+
+	return React.createElement("TextButton", {
+		Name = props.name,
+		LayoutOrder = props.order,
+		Size = size,
+		BackgroundColor3 = Colors.secondaryColor,
+		TextColor3 = Colors.textColor,
+		TextScaled = true,
+		Font = Enum.Font.FredokaOne,
+		Text = utf8.char(0xE002) .. tostring(props.amount),
+
+		[React.Event.MouseEnter] = onHover,
+		[React.Event.MouseLeave] = onUnhover,
+		[React.Event.Activated] = props.onClick,
+	}, {
+		React.createElement("UICorner", { CornerRadius = UDim.new(0.05, 0) }),
+		React.createElement("UIStroke", {
+			Thickness = 4,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = Colors.secondaryColor:lerp(Color3.new(0, 0, 0), 0.5),
+		}),
+	})
+end
 
 local function createButtons()
 	local int, setInt = React.useState({} :: { IntValue? })
@@ -20,12 +61,11 @@ local function createButtons()
 
 	local children = React.useMemo(function()
 		local childElements = {
-			React.createElement("UIGridLayout", {
-				CellSize = UDim2.fromScale(0.75, 0.09),
-				CellPadding = UDim2.fromScale(0, 0.03),
-				FillDirectionMaxCells = 1,
+			React.createElement("UIListLayout", {
+				Padding = UDim.new(0.03, 0),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Top,
 			}),
 
 			React.createElement("UIPadding", {
@@ -37,33 +77,13 @@ local function createButtons()
 			for index, donateInfo in ipairs(int) do
 				table.insert(
 					childElements,
-					React.createElement("TextButton", {
-						Name = donateInfo.name,
-						LayoutOrder = index,
-						BackgroundColor3 = Colors.secondaryColor,
-						TextColor3 = Colors.textColor,
-						TextScaled = true,
-						Font = Enum.Font.FredokaOne,
-
-						Text = utf8.char(0xE002) .. tostring(donateInfo.amount),
-
-						[React.Event.Activated] = function()
+					React.createElement(DonateButton, {
+						name = donateInfo.name,
+						order = index,
+						amount = donateInfo.amount,
+						onClick = function()
 							Signals.OnDonateClicked:FireServer(donateInfo.id, donateInfo.amount)
 						end,
-					}, {
-						React.createElement("UICorner", {
-							CornerRadius = UDim.new(0.05, 0),
-						}),
-
-						React.createElement("UIStroke", {
-							Thickness = 4,
-							ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-							Color = Color3.new(
-								math.clamp(Colors.secondaryColor.R * 0.5, 0, 1),
-								math.clamp(Colors.secondaryColor.G * 0.5, 0, 1),
-								math.clamp(Colors.secondaryColor.B * 0.5, 0, 1)
-							),
-						}),
 					})
 				)
 			end
@@ -87,13 +107,29 @@ local function createButtons()
 end
 
 local function Donates(props: {
-	onClose: () -> (),
 	quantity: number,
 })
+	local ui = useUIContext()
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.35, 0.8),
+		speed = 20,
+		damper = 0.7,
+	})
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.35, 0.8) })
+	end, {})
+
 	return React.createElement("Frame", {
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromScale(0.35, 0.8),
+		Size = size,
 		BackgroundColor3 = Colors.primaryColor,
 		Name = "Donates",
 	}, {
@@ -144,7 +180,9 @@ local function Donates(props: {
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = function(rbx)
+				onClose()
+			end,
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
@@ -200,9 +238,6 @@ local function DonatesApp()
 
 	return if ui.activeApp == APP_NAME
 		then React.createElement(Donates, {
-			onClose = function()
-				ui.closeApp()
-			end,
 			quantity = quantity,
 		})
 		else nil

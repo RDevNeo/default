@@ -9,6 +9,8 @@ return {
 	OpenOutfit = Signal.new(),
 	OpenFromSearch = Signal.new(),
 	PromptSinglePurchase = Signal.new(),
+	WarnSignal = Signal.new(),
+	OpenFromPlayer = Signal.new(),
 
 	-- Outfit
 	BuyOutfit = Net:RemoteEvent("BuyOutfit"),
@@ -45,6 +47,7 @@ return {
 	GetOutfits = Net:RemoteFunction("GetOutfits"),
 	GetLikedOuftiObject = Net:RemoteFunction("GetLikedOuftiObject"),
 	GetModelByCode = Net:RemoteFunction("GetModelByCode"),
+	GetOutfitLikes = Net:RemoteFunction("GetOutfitLikes"),
 
 	-- Global Events
 	SinglePurchaseMade = Net:RemoteEvent("SinglePurchaseMade"),

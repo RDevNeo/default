@@ -79,25 +79,17 @@ local function Likes(props: {
 	Outfits: { Outfit },
 })
 	return React.createElement("Frame", {
-		Position = UDim2.fromScale(0.5, 0.8),
+		Position = UDim2.fromScale(0.5, 0.629),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.fromScale(0.35, 0.18),
+		Size = UDim2.fromScale(0.35, 0.341),
 		BackgroundTransparency = 1,
 		Name = "LikesFrame",
 	}, {
-
-		UIListLayout = React.createElement("UIListLayout", {
-			FillDirection = Enum.FillDirection.Vertical,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-		}),
-
 		Holders = React.createElement("Frame", {
 			Name = "Holders",
-			Position = UDim2.fromScale(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.369),
 			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(0.8, 0.9),
+			Size = UDim2.fromScale(1, 0.749),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			LayoutOrder = 1,
 		}, {
@@ -141,12 +133,13 @@ local function Likes(props: {
 			}, {
 				React.createElement("UIListLayout", {
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-					HorizontalFlex = Enum.UIFlexAlignment.SpaceEvenly,
+					HorizontalFlex = Enum.UIFlexAlignment.None,
 					ItemLineAlignment = Enum.ItemLineAlignment.Center,
 					VerticalAlignment = Enum.VerticalAlignment.Center,
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					FillDirection = Enum.FillDirection.Vertical,
-					VerticalFlex = Enum.UIFlexAlignment.SpaceAround,
+					VerticalFlex = Enum.UIFlexAlignment.None,
+					Padding = UDim.new(0.12, 0),
 				}),
 
 				BuyButton = React.createElement("TextButton", {
@@ -244,7 +237,8 @@ local function Likes(props: {
 
 		CloseButton = React.createElement("TextButton", {
 			BackgroundColor3 = Colors.secondaryColor,
-			Size = UDim2.fromScale(0.5, 0.25),
+			Position = UDim2.fromScale(0.25, 0.81),
+			Size = UDim2.fromScale(0.5, 0.168),
 			Text = "Close View",
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
@@ -303,7 +297,7 @@ local function LikesApp()
 
 	local function onStart()
 		if #likedOutfits == 0 then
-			Signals.Warn:FireServer("No liked outfits.")
+			Signals.WarnSignal:Fire("No liked outfits!")
 			ui.closeApp()
 			return
 		end
@@ -336,10 +330,8 @@ local function LikesApp()
 
 	local function onNext()
 		local total = #likedOutfitsObj
-		print("Total outfits:", total)
 
 		if total <= 1 then
-			print("There is no next, only one outfit.")
 			return
 		end
 
@@ -347,9 +339,6 @@ local function LikesApp()
 			local new = prev + 1
 			if new > total then
 				new = 1
-				print("Wrapped to first outfit.")
-			else
-				print("Went to next outfit:", new)
 			end
 			return new
 		end)
@@ -357,10 +346,7 @@ local function LikesApp()
 
 	local function onPrev()
 		local total = #likedOutfitsObj
-		print("Total outfits:", total)
-
 		if total <= 1 then
-			print("There is no previous, only one outfit.")
 			return
 		end
 
@@ -368,9 +354,6 @@ local function LikesApp()
 			local new = prev - 1
 			if new < 1 then
 				new = total
-				print("Wrapped to last outfit.")
-			else
-				print("Went to previous outfit:", new)
 			end
 			return new
 		end)

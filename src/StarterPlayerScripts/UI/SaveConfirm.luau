@@ -7,20 +7,37 @@ local StarterPlayer = game:GetService("StarterPlayer")
 -- Dependencies
 local React = require(ReplicatedStorage.Packages.React)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 
 local function SaveConfirm(props: {
-	onClose: () -> (),
 	onBackButton: () -> (),
 	action: string,
 	setAction: (string) -> (),
 })
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.35, 0.14),
+		speed = 20,
+		damper = 0.7,
+	})
+	local ui = useUIContext()
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.35, 0.14) })
+	end, {})
+
 	return React.createElement("Frame", {
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromScale(0.35, 0.14),
+		Size = size,
 		BackgroundColor3 = Colors.primaryColor,
 		Name = "SaveConfirm",
 	}, {
@@ -45,7 +62,7 @@ local function SaveConfirm(props: {
 
 			[React.Event.Activated] = function(rbx)
 				props.setAction("Equip")
-				props.onClose()
+				onClose()
 				AvatarEditorService:PromptAllowInventoryReadAccess()
 			end,
 		}, {
@@ -76,7 +93,7 @@ local function SaveConfirm(props: {
 
 			[React.Event.Activated] = function(rbx)
 				props.setAction("Save")
-				props.onClose()
+				onClose()
 				AvatarEditorService:PromptAllowInventoryReadAccess()
 			end,
 		}, {
@@ -118,7 +135,7 @@ local function SaveConfirm(props: {
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = onClose,
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
@@ -163,9 +180,7 @@ local function SaveConfirmApp()
 
 	return if ui.activeApp == APP_NAME
 		then React.createElement(SaveConfirm, {
-			onClose = function()
-				ui.closeApp()
-			end,
+
 			onBackButton = function()
 				ui.openApp("Save To Roblox")
 			end,

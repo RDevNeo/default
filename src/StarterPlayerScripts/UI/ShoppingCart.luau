@@ -10,6 +10,7 @@ local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Modu
 local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local Net = require(ReplicatedStorage.Packages.Net)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -394,17 +395,33 @@ local function ShoppingCart(props: {
 	likedAccs: { number } | {},
 	onRemoveItem: (number) -> (),
 	removeAll: () -> (),
-	onClose: () -> (),
 	removeFromLikeds: (id: number) -> (),
 	addToLikes: (id: number) -> (),
 }): Frame?
 	local totalCost, setTotalCost = React.useState(0)
 	local current, setCurrent = React.useState(nil)
 	local hovered, setHovered = React.useState(nil)
+	local ui = useUIContext()
+
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.8, 0.8),
+		speed = 20,
+		damper = 0.7,
+	})
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.8, 0.8) })
+	end)
 
 	return React.createElement("Frame", {
 		Name = "Shopping Cart",
-		Size = UDim2.fromScale(0.8, 0.8),
+		Size = size,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		BackgroundColor3 = Colors.primaryColor,
@@ -456,7 +473,7 @@ local function ShoppingCart(props: {
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = onClose,
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
@@ -598,65 +615,83 @@ local function ShoppingCartApp()
 	local ui = useUIContext()
 	local cart, setCart = React.useState({} :: { number })
 	local likedAccs, setLikedsAccs = React.useState({} :: { number })
+
 	local APP_NAME = "Shopping Cart"
+
 	React.useEffect(function()
-		if ui.activeApp == APP_NAME then
-			local fetchedCart = Net:Invoke("GetCart")
-			local fetchedLikeds = Net:Invoke("GetLikedAccs")
-			if fetchedCart and fetchedLikeds then
-				setCart(fetchedCart)
-				setLikedsAccs(fetchedLikeds)
-			end
+		if ui.activeApp ~= APP_NAME then
+			return
 		end
+
+		local fetchedCart = Net:Invoke("GetCart")
+		local fetchedLikeds = Net:Invoke("GetLikedAccs")
+
+		if not fetchedCart or #fetchedCart == 0 then
+			Signals.WarnSignal:Fire("Nothing found inside your cart.")
+			ui.closeApp()
+			return
+		end
+
+		setCart(fetchedCart)
+		setLikedsAccs(fetchedLikeds or {})
 	end, { ui.activeApp })
+
+	-- Remove from liked list
 	local removeFromLikeds = React.useCallback(function(id: number)
-		setLikedsAccs(function(prevLiked)
-			local newCart = {}
-			for _, itemId in ipairs(prevLiked) do
+		setLikedsAccs(function(prev)
+			local new = {}
+			for _, itemId in ipairs(prev) do
 				if itemId ~= id then
-					table.insert(newCart, itemId)
+					table.insert(new, itemId)
 				end
 			end
-			return newCart
+			return new
 		end)
 	end, {})
+
+	-- Add to liked list
 	local addToLikes = React.useCallback(function(id: number)
-		setLikedsAccs(function(prevLiked)
-			if table.find(prevLiked, id) ~= nil then
-				return prevLiked
+		setLikedsAccs(function(prev)
+			if table.find(prev, id) then
+				return prev
 			end
-			local newCart = table.clone(prevLiked)
-			table.insert(newCart, id)
-			return newCart
+			local new = table.clone(prev)
+			table.insert(new, id)
+			return new
 		end)
 	end, {})
+
+	-- Remove an item from cart
 	local removeFromCart = React.useCallback(function(id: number)
-		setCart(function(prevCart)
-			local newCart = {}
-			for _, itemId in ipairs(prevCart) do
+		setCart(function(prev)
+			local new = {}
+			for _, itemId in ipairs(prev) do
 				if itemId ~= id then
-					table.insert(newCart, itemId)
+					table.insert(new, itemId)
 				end
 			end
-			return newCart
+			return new
 		end)
 	end, {})
-	local removeAll = function()
+
+	-- Clear entire cart
+	local removeAll = React.useCallback(function()
 		setCart({})
-	end
-	return if ui.activeApp == APP_NAME
-		then React.createElement(ShoppingCart, {
+	end, {})
+
+	-- Render only if app open and cart has items
+	if ui.activeApp == APP_NAME and #cart > 0 then
+		return React.createElement(ShoppingCart, {
 			cart = cart,
 			onRemoveItem = removeFromCart,
 			removeAll = removeAll,
 			likedAccs = likedAccs,
 			removeFromLikeds = removeFromLikeds,
 			addToLikes = addToLikes,
-			onClose = function()
-				ui.closeApp()
-			end,
 		})
-		else nil
+	end
+
+	return nil
 end
 
 return ShoppingCartApp

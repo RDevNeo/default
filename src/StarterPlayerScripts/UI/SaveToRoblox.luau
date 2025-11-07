@@ -10,6 +10,7 @@ local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local Net = require(ReplicatedStorage.Packages.Net)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -129,6 +130,10 @@ local function createScrollingFrame(props: {
 							BackgroundTransparency = 0.97,
 							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 							Text = "",
+
+							[React.Event.Activated] = function(rbx)
+								Signals.PromptSinglePurchase:Fire(id)
+							end,
 						}, {
 							React.createElement("TextLabel", {
 								Text = "Not Owned",
@@ -284,11 +289,27 @@ local function createScrollingFrame(props: {
 	return nil
 end
 
-local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }): Frame?
+local function SaveToRoblox(props: { onSaveButton: () -> () }): Frame?
 	local viewportRef = React.useRef(nil)
 	local modelRef = React.useRef(nil :: Model?)
 	local ids, setIds = React.useState(nil :: { number }?)
 	local totalCost, setTotalCost = React.useState(0)
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.7, 0.8),
+		speed = 20,
+		damper = 0.7,
+	})
+	local ui = useUIContext()
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.7, 0.8) })
+	end)
 
 	React.useEffect(function()
 		local viewportFrame = viewportRef.current
@@ -296,7 +317,6 @@ local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }
 			return
 		end
 
-		-- Character can be cloned if "Archived" is set to true. Which by default, is setted for false.
 		local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 		local old = character.Archivable
 		character.Archivable = true
@@ -323,7 +343,7 @@ local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }
 
 	return React.createElement("Frame", {
 		Name = "Save to Roblox",
-		Size = UDim2.fromScale(0.7, 0.8),
+		Size = size,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		BackgroundColor3 = Colors.primaryColor,
@@ -375,7 +395,7 @@ local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = onClose,
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
@@ -470,7 +490,7 @@ local function SaveToRoblox(props: { onClose: () -> (), onSaveButton: () -> () }
 
 				[React.Event.Activated] = function(instance)
 					Signals.BuyOutfit:FireServer(ids)
-					props.onClose()
+					onClose()
 				end,
 			}, {
 				React.createElement("UICorner", {
@@ -513,25 +533,12 @@ local function SaveToRobloxApp()
 	local ui = useUIContext()
 	local APP_NAME = "Save To Roblox"
 
-	React.useEffect(function()
-		local connection = Signals.OpenOutfit:Connect(function(code: string)
-			ui.openApp(APP_NAME)
-		end)
-
-		return function()
-			connection:Disconnect()
-		end
-	end, {})
-
 	local function onSaveButton()
 		ui.openApp("Save Confirm")
 	end
 
 	return if ui.activeApp == APP_NAME
 		then React.createElement(SaveToRoblox, {
-			onClose = function()
-				ui.closeApp()
-			end,
 			onSaveButton = onSaveButton,
 		})
 		else nil

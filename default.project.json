@@ -5,45 +5,6 @@
 
     "ReplicatedStorage": {
       "$path": "src/ReplicatedStorage",
-      "RF": {
-        "$className": "Folder",
-
-        "GetCart": {
-          "$className" : "RemoteFunction"
-        },
-        "GetLikedAccs": {
-          "$className" : "RemoteFunction"
-        },
-        "GetOwnedAssets": {
-          "$className": "RemoteFunction"
-        },
-        "GetRunConfig": {
-          "$className": "RemoteFunction"
-        },
-        "GetPlayerModelRange" : {
-          "$className": "RemoteFunction"
-        },
-        "GetMusicID" : {
-          "$className": "RemoteFunction"
-        },
-        "GetIntValues": {
-          "$className": "RemoteFunction"
-        },
-        "GetDonatedValue" : {
-          "$className": "RemoteFunction"
-        },
-        "GetOutfits": {
-          "$className" :"RemoteFunction"
-        },
-        "GetLikedOutfits" : {
-          "$className": "RemoteFunction"
-        },
-        "GetLikedOuftiObject" : {
-          "$className" :"RemoteFunction"
-        }
-      },
-
-
       "Packages": {
         "$className": "Folder",
         "$path": "Packages"

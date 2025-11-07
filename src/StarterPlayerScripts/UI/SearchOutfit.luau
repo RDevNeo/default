@@ -6,6 +6,7 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local React = require(ReplicatedStorage.Packages.React)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Net = require(ReplicatedStorage.Packages.Net)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -23,11 +24,26 @@ type Outfit = {
 	CameraPart: Part,
 }
 
-local function SearchOutfit(props: { onClose: () -> () })
+local function SearchOutfit()
 	local code, setCode = React.useState(nil)
 	local debounceRef = React.useRef(nil)
-
+	local ui = useUIContext()
 	local DEBOUNCE_SECONDS = 0.1
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0, 0),
+		target = UDim2.fromScale(0.5, 0.3),
+		speed = 20,
+		damper = 0.7,
+	})
+
+	local function onClose()
+		setSize({ target = UDim2.fromScale(0, 0) })
+		ui.closeApp()
+	end
+
+	React.useEffect(function()
+		setSize({ target = UDim2.fromScale(0.5, 0.3) })
+	end, {})
 
 	local function debouncedFire(inputText: string?)
 		setCode(inputText)
@@ -40,15 +56,21 @@ local function SearchOutfit(props: { onClose: () -> () })
 		if inputText and inputText ~= "" then
 			debounceRef.current = task.delay(DEBOUNCE_SECONDS, function()
 				local Outfit: Outfit = Net:Invoke("GetModelByCode", string.upper(inputText))
-				Signals.OpenFromSearch:Fire(Outfit.Code, Outfit.Model)
-				debounceRef.current = nil
+
+				if Outfit then
+					Signals.OpenFromSearch:Fire(Outfit.Code, Outfit.Model)
+					debounceRef.current = nil
+				else
+					Signals.WarnSignal:Fire("No outfit with that code.")
+					onClose()
+				end
 			end)
 		end
 	end
 
 	return React.createElement("Frame", {
 		Name = "Search Outfit",
-		Size = UDim2.fromScale(0.5, 0.3),
+		Size = size,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		BackgroundColor3 = Colors.primaryColor,
@@ -100,7 +122,7 @@ local function SearchOutfit(props: { onClose: () -> () })
 			TextScaled = true,
 			Font = Enum.Font.FredokaOne,
 
-			[React.Event.Activated] = props.onClose,
+			[React.Event.Activated] = onClose,
 		}, {
 			React.createElement("UICorner", {
 				CornerRadius = UDim.new(0.1, 0),
@@ -181,14 +203,7 @@ local function SearchOutfitApp()
 
 	local APP_NAME = "Search Outfit"
 
-	return if ui.activeApp == APP_NAME
-		then React.createElement(SearchOutfit, {
-
-			onClose = function()
-				ui.closeApp()
-			end,
-		})
-		else nil
+	return if ui.activeApp == APP_NAME then React.createElement(SearchOutfit, {}) else nil
 end
 
 return SearchOutfitApp

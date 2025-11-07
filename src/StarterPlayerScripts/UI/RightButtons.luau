@@ -6,11 +6,34 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local Colors = require("./Colors")
 local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local HoverSound = ReplicatedStorage:WaitForChild("HoverSound") :: Sound
 
 local createButtons = function(props: { Name: string, APP_NAME: string, Order: number })
 	local ui = useUIContext()
+
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0.9, 0.07),
+		target = UDim2.fromScale(0.9, 0.07),
+		speed = 18,
+		damper = 0.8,
+	})
+
+	local function onHover()
+		setSize({
+			target = UDim2.fromScale(1, 0.08),
+		})
+		HoverSound:Play()
+	end
+
+	local function onUnhover()
+		setSize({
+			target = UDim2.fromScale(0.9, 0.07),
+		})
+	end
+
 	return React.createElement("TextButton", {
-		Size = UDim2.fromScale(0.9, 0.07),
+		Size = size,
 		Name = props.Name,
 		BackgroundColor3 = Colors.primaryColor,
 		TextColor3 = Colors.textColor,
@@ -18,6 +41,9 @@ local createButtons = function(props: { Name: string, APP_NAME: string, Order: n
 		Text = props.Name,
 		TextScaled = true,
 		LayoutOrder = props.Order,
+
+		[React.Event.MouseEnter] = onHover,
+		[React.Event.MouseLeave] = onUnhover,
 
 		[React.Event.Activated] = function(rbx)
 			ui.openApp(props.APP_NAME)

@@ -1,14 +1,17 @@
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local OutfitsMT = require(ServerStorage.Source.Outfits.OutfitsMT)
-local OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
+OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local DataManager = require(ServerStorage.Source.Datastore.DataManager)
 local Net = require(ReplicatedStorage.Packages.Net)
+local _InstanceCreator = require(ServerStorage.Source.InstancesCreator)
 
 type Outfit = OutfitsMT.Outfit
 
 local ownershipCache = {}
+local originalDesc = {}
 
 local function checkOwnershipAsync(player, ids)
 	local uid = player.UserId
@@ -23,7 +26,7 @@ local function checkOwnershipAsync(player, ids)
 		else
 			local success, owns = pcall(MarketplaceService.PlayerOwnsAsset, MarketplaceService, player, id)
 			owns = success and owns or false
-			ownershipCache[uid][id] = owns -- ✅ store for reuse
+			ownershipCache[uid][id] = owns
 			results[id] = owns
 		end
 	end
@@ -55,6 +58,20 @@ local function IntHelpers()
 
 	return result
 end
+
+Players.PlayerAdded:Connect(function(player)
+	local success, desc = pcall(function()
+		return Players:GetHumanoidDescriptionFromUserId(player.UserId)
+	end)
+
+	if success and desc then
+		originalDesc[player.UserId] = desc:Clone()
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	originalDesc[player.UserId] = nil
+end)
 
 -- Remote Functions
 Net:Connect("WearOutfit", function(player, code: string)
@@ -147,7 +164,22 @@ Net:Connect("Warn", function(player, msg)
 end)
 
 Net:Connect("Reset", function(player: Player)
-	player:LoadCharacter()
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+
+	local originalDesc = originalDesc[player.UserId]
+	if not originalDesc then
+		return
+	end
+
+	humanoid:ApplyDescription(originalDesc)
 end)
 
 -- Remote Functions
@@ -218,4 +250,9 @@ Net:Handle("GetModelByCode", function(player, code: string)
 	end
 
 	return
+end)
+
+Net:Handle("GetOutfitLikes", function(player, code: string)
+	local fixed = tostring(DataManager.GetGlobalOutfitLikes(code))
+	return fixed
 end)

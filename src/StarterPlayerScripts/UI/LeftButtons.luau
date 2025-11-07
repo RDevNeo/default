@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
 
 -- Dependencies
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
@@ -11,19 +10,41 @@ local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Net = require(ReplicatedStorage.Packages.Net)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local Humanoid = character.Humanoid :: Humanoid
+local HoverSound = ReplicatedStorage:WaitForChild("HoverSound") :: Sound
 
 local createButton = function(props: {
 	Name: string,
 	Order: number,
 	onPress: ((Instance?) -> ())?,
 })
+	local size, setSize = ReactFlow.useSpring({
+		start = UDim2.fromScale(0.9, 0.07),
+		target = UDim2.fromScale(0.9, 0.07),
+		speed = 18,
+		damper = 0.8,
+	})
+
+	local function onHover()
+		setSize({
+			target = UDim2.fromScale(1, 0.08),
+		})
+		HoverSound:Play()
+	end
+
+	local function onUnhover()
+		setSize({
+			target = UDim2.fromScale(0.9, 0.07),
+		})
+	end
+
 	return React.createElement("TextButton", {
-		Size = UDim2.fromScale(0.9, 0.07),
+		Size = size,
 		Name = props.Name,
 		BackgroundColor3 = Colors.primaryColor,
 		TextColor3 = Colors.textColor,
@@ -31,6 +52,9 @@ local createButton = function(props: {
 		Text = props.Name,
 		TextScaled = true,
 		LayoutOrder = props.Order,
+
+		[React.Event.MouseEnter] = onHover,
+		[React.Event.MouseLeave] = onUnhover,
 
 		[React.Event.Activated] = function(rbx)
 			if props.onPress then
@@ -83,7 +107,7 @@ local function ShopApp()
 	end
 
 	React.useEffect(function()
-		local musicSound: Sound = Workspace:FindFirstChild("BackgroundSound")
+		local musicSound: Sound = ReplicatedStorage:WaitForChild("BackgroundSound")
 		local soundId: number = Net:Invoke("GetMusicID")
 
 		if not soundId or soundId == 0 then

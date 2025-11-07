@@ -45,6 +45,7 @@ local signals = {
 	GetOutfits = Net:RemoteFunction("GetOutfits"),
 	GetLikedOuftiObject = Net:RemoteFunction("GetLikedOuftiObject"),
 	GetModelByCode = Net:RemoteFunction("GetModelByCode"),
+	GetOutfitLikes = Net:RemoteFunction("GetOutfitLikes"),
 
 	-- Global Events
 	bulkPurchaseMade = Net:RemoteEvent("bulkPurchaseMade"),

@@ -1,8 +1,10 @@
 local CollectionService = game:GetService("CollectionService")
-local Workspace = game:GetService("Workspace")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local Outfits = {}
 Outfits.__index = Outfits
+
+local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
 export type Outfit = {
 	Name: string,
@@ -55,9 +57,13 @@ function Outfits.new(model: Model): Outfit
 	self.Name = model.Name :: string
 	self.Code = model:GetAttribute("Code") :: string
 
+	self.Attachment = Instance.new("Attachment", model) :: Attachment
+	self.Attachment.Position = Vector3.new(0, 5, 0)
+
 	-- Proximity Prompt
-	self.Prompt = Instance.new("ProximityPrompt", model) :: ProximityPrompt
-	self.Prompt.UIOffset = Vector2.new(0, 200)
+	self.Prompt = Instance.new("ProximityPrompt", self.Attachment) :: ProximityPrompt
+	self.Prompt.UIOffset = Vector2.new(0, 0)
+	self.Prompt.ObjectText = gameName
 	self.Prompt.ActionText = "View Outfit"
 	self.Prompt.RequiresLineOfSight = false
 

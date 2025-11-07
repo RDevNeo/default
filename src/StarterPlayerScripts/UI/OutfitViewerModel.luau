@@ -430,6 +430,7 @@ local function OutfitViewer(props: {
 	likeOutfit: (string) -> (),
 	unlikeOutfit: (string) -> (),
 	likedOutfits: { string },
+	outfitLikes: string,
 }): Frame?
 	local viewportRef = React.useRef(nil)
 	local modelRef = React.useRef(nil :: Model?)
@@ -438,6 +439,7 @@ local function OutfitViewer(props: {
 	local current, setCurrent = React.useState(nil :: number?)
 	local hovered, setHovered = React.useState(nil :: number?)
 	local isLiked = table.find(props.likedOutfits, props.code) ~= nil
+	local likes, setLikes = React.useState(props.outfitLikes)
 
 	React.useEffect(function()
 		local viewportFrame = viewportRef.current
@@ -568,7 +570,7 @@ local function OutfitViewer(props: {
 					TextColor3 = Colors.textColor,
 					ZIndex = 2,
 					TextScaled = true,
-					Text = "99 Likes",
+					Text = likes .. " Likes",
 					Font = Enum.Font.FredokaOne,
 				}, {
 					React.createElement("UICorner", {
@@ -618,6 +620,7 @@ local function OutfitViewer(props: {
 						[React.Event.Activated] = function(rbx)
 							props.unlikeOutfit(props.code)
 							Signals.RemoveOutfitLike:FireServer(props.code)
+							setLikes(likes - 1)
 						end,
 					}) or React.createElement("ImageButton", {
 						Name = "Not Liked",
@@ -630,6 +633,7 @@ local function OutfitViewer(props: {
 						[React.Event.Activated] = function(rbx)
 							props.likeOutfit(props.code)
 							Signals.AddOutfitLike:FireServer(props.code)
+							setLikes(likes + 1)
 						end,
 					}),
 				}),
@@ -758,6 +762,7 @@ local function OutfitApp()
 	local likedAccs, setLikedsAccs = React.useState({} :: { number })
 	local likedOutfits, setLikedOutfits = React.useState({} :: { number })
 	local model, setModel = React.useState(nil)
+	local outfitLikes, setOufitLikes = React.useState(nil)
 
 	local APP_NAME = "OutfitViewer"
 
@@ -843,12 +848,21 @@ local function OutfitApp()
 
 	React.useEffect(function()
 		local connection = Signals.OpenOutfit:Connect(function(code: string, model: Model)
+			setOufitLikes(Net:Invoke("GetOutfitLikes", code))
 			setOutfitCode(code)
 			setModel(model)
 			ui.openApp(APP_NAME)
 		end)
 
 		local otherConnection = Signals.OpenFromSearch:Connect(function(code: string, model: Model)
+			setOufitLikes(Net:Invoke("GetOutfitLikes", code))
+			setOutfitCode(code)
+			setModel(model)
+			ui.openApp(APP_NAME)
+		end)
+
+		local oneMoreConnection = Signals.OpenFromPlayer:Connect(function(code: string, model: Model)
+			setOufitLikes(0)
 			setOutfitCode(code)
 			setModel(model)
 			ui.openApp(APP_NAME)
@@ -857,6 +871,7 @@ local function OutfitApp()
 		return function()
 			connection:Disconnect()
 			otherConnection:Disconnect()
+			oneMoreConnection:Disconnect()
 		end
 	end, {})
 
@@ -873,6 +888,7 @@ local function OutfitApp()
 			likeOutfit = likeOutfit,
 			unlikeOutfit = unlikeOutfit,
 			likedOutfits = likedOutfits,
+			outfitLikes = outfitLikes,
 			onClose = function()
 				ui.closeApp()
 				setOutfitCode("")
