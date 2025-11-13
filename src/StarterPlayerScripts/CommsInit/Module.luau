@@ -11,6 +11,8 @@ return {
 	PromptSinglePurchase = Signal.new(),
 	WarnSignal = Signal.new(),
 	OpenFromPlayer = Signal.new(),
+	OpenTeleportMenu = Signal.new(),
+	OpenGroupReward = Signal.new(),
 
 	-- Outfit
 	BuyOutfit = Net:RemoteEvent("BuyOutfit"),
@@ -32,6 +34,7 @@ return {
 	OutfitCodeInputed = Net:RemoteEvent("OutfitCodeInputed"),
 	Warn = Net:RemoteEvent("Warn"),
 	Reset = Net:RemoteEvent("Reset"),
+	AnnouncePurchase = Net:RemoteEvent("AnnouncePurchase"),
 
 	-- Internal Remotes Functions
 	ProfileLoaded = Net:RemoteEvent("ProfileLoaded"),
@@ -48,6 +51,7 @@ return {
 	GetLikedOuftiObject = Net:RemoteFunction("GetLikedOuftiObject"),
 	GetModelByCode = Net:RemoteFunction("GetModelByCode"),
 	GetOutfitLikes = Net:RemoteFunction("GetOutfitLikes"),
+	GetGamesIds = Net:RemoteFunction("GetGamesIds"),
 
 	-- Global Events
 	SinglePurchaseMade = Net:RemoteEvent("SinglePurchaseMade"),

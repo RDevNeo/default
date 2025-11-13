@@ -452,8 +452,8 @@ local function SaveToRoblox(props: { onSaveButton: () -> () }): Frame?
 			}),
 
 			ItemsFrame = React.createElement("Frame", {
-				Size = UDim2.fromScale(0.4, 0.95),
-				Position = UDim2.fromScale(0.5, -0.02),
+				Size = UDim2.fromScale(0.4, 0.9),
+				Position = UDim2.fromScale(0.5, 0),
 				BackgroundTransparency = 1,
 				LayoutOrder = 2,
 			}, {
@@ -462,6 +462,15 @@ local function SaveToRoblox(props: { onSaveButton: () -> () }): Frame?
 					setTotalCost = setTotalCost,
 				}),
 			}),
+		}),
+
+		Desc = React.createElement("TextLabel", {
+			Position = UDim2.fromScale(0.5, 0.09),
+			Size = UDim2.fromScale(0.8, 0.05),
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Font = Enum.Font.FredokaOne,
+			TextScaled = true,
 		}),
 
 		Footer = React.createElement("Frame", {

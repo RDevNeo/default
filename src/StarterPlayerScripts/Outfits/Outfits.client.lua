@@ -1,8 +1,12 @@
+-- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPlayer = game:GetService("StarterPlayer")
+local TextChatService = game:GetService("TextChatService")
 
+-- Dependencies
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Net = require(ReplicatedStorage.Packages.Net)
+local systemChannel: TextChannel = TextChatService:WaitForChild("TextChannels"):FindFirstChild("RBXSystem")
 
 local Outfits = Net:Invoke("GetOutfits")
 
@@ -37,3 +41,7 @@ for index, value in pairs(Outfits) do
 		Signals.OpenOutfit:Fire(Code, Model)
 	end)
 end
+
+Net:Connect("AnnouncePurchase", function(message)
+	systemChannel:DisplaySystemMessage(message)
+end)

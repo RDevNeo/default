@@ -21,6 +21,8 @@ local SaveConfirm = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveCon
 local Donates = require(StarterPlayer.StarterPlayerScripts.Source.UI.Donates)
 local Likes = require(StarterPlayer.StarterPlayerScripts.Source.UI.Likes)
 local Warn = require(StarterPlayer.StarterPlayerScripts.Source.UI.Warn)
+local TeleportMenu = require(StarterPlayer.StarterPlayerScripts.Source.UI.TeleportMenu)
+local GroupReward = require(StarterPlayer.StarterPlayerScripts.Source.UI.GroupReward)
 
 -- Variables
 local player = Players.LocalPlayer
@@ -47,6 +49,8 @@ local function AppRouter()
 		React.createElement(Donates),
 		React.createElement(Likes),
 		React.createElement(Warn),
+		React.createElement(TeleportMenu),
+		React.createElement(GroupReward),
 	})
 end
 

@@ -68,6 +68,9 @@ end
 -- Set up for players already in the server when script runs
 for _, plr in ipairs(Players:GetPlayers()) do
 	PlayerMT.new(plr)
+	if plr:IsInGroup(995190819) then
+		plr:SetAttribute("IsInGroup", true)
+	end
 end
 
 return PlayerMT

@@ -31,6 +31,7 @@ local signals = {
 	OutfitCodeInputed = Net:RemoteEvent("OutfitCodeInputed"),
 	Warn = Net:RemoteEvent("Warn"),
 	Reset = Net:RemoteEvent("Reset"),
+	AnnouncePurchase = Net:RemoteEvent("AnnouncePurchase"),
 
 	-- Remotes Functions
 	GetMusicID = Net:RemoteFunction("GetMusicID"),
@@ -46,6 +47,7 @@ local signals = {
 	GetLikedOuftiObject = Net:RemoteFunction("GetLikedOuftiObject"),
 	GetModelByCode = Net:RemoteFunction("GetModelByCode"),
 	GetOutfitLikes = Net:RemoteFunction("GetOutfitLikes"),
+	GetGamesIds = Net:RemoteFunction("GetGamesIds"),
 
 	-- Global Events
 	bulkPurchaseMade = Net:RemoteEvent("bulkPurchaseMade"),

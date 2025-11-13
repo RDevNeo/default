@@ -502,10 +502,13 @@ local function LikedAccessoriesApp()
 			return
 		end
 
-		setCart(Net:Invoke("GetCart"))
-		setLikedsAccs(Net:Invoke("GetLikedAccs"))
+		local newCart = Net:Invoke("GetCart")
+		local newLiked = Net:Invoke("GetLikedAccs")
 
-		if #likedAccs == 0 then
+		setCart(newCart)
+		setLikedsAccs(newLiked)
+
+		if #newLiked == 0 then
 			Signals.WarnSignal:Fire("You haven't liked any accessories yet.")
 			ui.closeApp()
 			return
@@ -558,7 +561,6 @@ local function LikedAccessoriesApp()
 		end)
 	end, {})
 
-	-- Render only if app is open AND liked list isn't empty
 	if ui.activeApp == APP_NAME and #likedAccs > 0 then
 		return React.createElement(LikedAccessories, {
 			cart = cart,

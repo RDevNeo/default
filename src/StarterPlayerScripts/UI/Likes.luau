@@ -296,7 +296,7 @@ local function LikesApp()
 	end
 
 	local function onStart()
-		if #likedOutfits == 0 then
+		if #likedOutfits == 0 or #likedOutfitsObj == 0 then
 			Signals.WarnSignal:Fire("No liked outfits!")
 			ui.closeApp()
 			return

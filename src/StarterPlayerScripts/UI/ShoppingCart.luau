@@ -550,6 +550,7 @@ local function ShoppingCart(props: {
 				Font = Enum.Font.FredokaOne,
 
 				[React.Event.Activated] = function(rbx)
+					ui.closeApp()
 					props.removeAll()
 					Signals.RemoveToCart:FireServer(props.cart)
 				end,
@@ -585,6 +586,10 @@ local function ShoppingCart(props: {
 				Size = UDim2.fromScale(0.2, 0.5),
 				TextScaled = true,
 				Font = Enum.Font.FredokaOne,
+
+				[React.Event.Activated] = function(rbx)
+					Signals.BuyOutfit:FireServer(props.cart)
+				end,
 			}, {
 				React.createElement("UICorner", {
 					CornerRadius = UDim.new(0.1, 0),

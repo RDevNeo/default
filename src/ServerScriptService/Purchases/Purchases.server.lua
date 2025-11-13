@@ -1,15 +1,19 @@
 -- Services
 local MarketplaceService = game:GetService("MarketplaceService")
+local MessagingService = game:GetService("MessagingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
+local TextChatService = game:GetService("TextChatService")
 
 -- Dependencies
 local DataManager = require(ServerStorage.Source.Datastore.DataManager)
 local WebwookHandler = require(ServerStorage.Source.Webook.Handler)
 local Helper = require(ServerScriptService.Source.Purchases.Helper)
 local Net = require(ReplicatedStorage.Packages.Net)
+local systemChannel: TextChannel = TextChatService:WaitForChild("TextChannels"):FindFirstChild("RBXSystem")
+local Signals = require(ServerScriptService.Source.CommsInit.Module)
 
 local rbxQuantity: number
 
@@ -29,6 +33,27 @@ Net:Connect("SinglePurchaseMade", function(player, assetId)
 			spent = result.PriceInRobux,
 		})
 	end
+
+	if result then
+		MessagingService:PublishAsync("GlobalPurchase", {
+			playerName = player.name,
+			itemName = result.Name,
+			price = result.PriceInRobux,
+		})
+	end
+end)
+
+MessagingService:SubscribeAsync("GlobalPurchase", function(message)
+	local data: { playerName: string, itemName: string, price: number } = message.Data
+	local text = string.format(
+		'<font color="rgb(0,255,0)">[✅] %s bought "%s" for %s%s!</font>',
+		data.playerName,
+		data.itemName,
+		utf8.char(0xE002),
+		tostring(data.price)
+	)
+
+	Signals.AnnouncePurchase:FireAllClients(text)
 end)
 
 -- This prompts products (Donates)
@@ -43,7 +68,7 @@ MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, produc
 		return Players:GetPlayerByUserId(userId)
 	end)
 
-	if success then
+	if success and isPurchased then
 		DataManager.AddDonated(player, rbxQuantity)
 	end
 end)

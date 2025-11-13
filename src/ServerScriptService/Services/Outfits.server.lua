@@ -1,4 +1,5 @@
 local MarketplaceService = game:GetService("MarketplaceService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -63,7 +64,6 @@ Players.PlayerAdded:Connect(function(player)
 	local success, desc = pcall(function()
 		return Players:GetHumanoidDescriptionFromUserId(player.UserId)
 	end)
-
 	if success and desc then
 		originalDesc[player.UserId] = desc:Clone()
 	end
@@ -73,7 +73,7 @@ Players.PlayerRemoving:Connect(function(player)
 	originalDesc[player.UserId] = nil
 end)
 
--- Remote Functions
+-- Remote Events
 Net:Connect("WearOutfit", function(player, code: string)
 	if not player then
 		return
@@ -164,22 +164,10 @@ Net:Connect("Warn", function(player, msg)
 end)
 
 Net:Connect("Reset", function(player: Player)
-	local character = player.Character
-	if not character then
-		return
-	end
-
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return
-	end
-
-	local originalDesc = originalDesc[player.UserId]
-	if not originalDesc then
-		return
-	end
-
-	humanoid:ApplyDescription(originalDesc)
+	local HumanoidDescription = Players:GetHumanoidDescriptionFromUserId(player.UserId)
+	local Character = player.Character or player.CharacterAdded:Wait()
+	local Humanoid = Character:WaitForChild("Humanoid")
+	Humanoid:ApplyDescription(HumanoidDescription)
 end)
 
 -- Remote Functions
@@ -255,4 +243,30 @@ end)
 Net:Handle("GetOutfitLikes", function(player, code: string)
 	local fixed = tostring(DataManager.GetGlobalOutfitLikes(code))
 	return fixed
+end)
+
+Net:Handle("GetGamesIds", function(player: Player)
+	local groupId = 995190819
+
+	local success, result = pcall(function()
+		return HttpService:GetAsync(`https://games.roproxy.com/v2/groups/{groupId}/gamesV2`)
+	end)
+
+	if success then
+		return HttpService:JSONDecode(result)
+	end
+	return nil
+end)
+
+Net:Handle("GetGameThumbnail", function(player, gameId)
+	local success, result = pcall(function()
+		return HttpService:GetAsync(
+			`https://games.roproxy.com/v2/games/{gameId}/media?fetchAllExperienceRelatedMedia=false`
+		)
+	end)
+
+	if success then
+		return HttpService:JSONDecode(result)
+	end
+	return
 end)
