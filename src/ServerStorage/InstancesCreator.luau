@@ -11,7 +11,6 @@ local module = {}
 
 local CameraParts = Workspace:FindFirstChild("CameraParts")
 if not CameraParts then
-	warn("Created CameraParts in Workspace because none was found.")
 	CameraParts = Instance.new("Folder", Workspace)
 	CameraParts.Name = "CameraParts"
 end
@@ -24,7 +23,6 @@ if not BackgroundSound then
 	BackgroundSound.Playing = true
 	BackgroundSound.Volume = 0.3
 	BackgroundSound.Name = "BackgroundSound"
-	warn("Created BackgroundSound in Replicated Storage because none was found.")
 end
 
 local ColorsFolder = ReplicatedStorage:FindFirstChild("Colors")
@@ -32,7 +30,6 @@ if not ColorsFolder then
 	ColorsFolder = Instance.new("Folder")
 	ColorsFolder.Parent = ReplicatedStorage
 	ColorsFolder.Name = "Colors"
-	warn("Created a copy of the Color folder in Replicated Storage.")
 end
 
 for index, instance in pairs(Colors) do
