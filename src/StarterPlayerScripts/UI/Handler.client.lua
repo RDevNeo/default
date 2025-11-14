@@ -6,8 +6,18 @@ local StarterPlayer = game:GetService("StarterPlayer")
 -- Dependencies
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
+
 -- Context
 local UIContextProvider = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).UIContextProvider
+
+-- Shadows
+local TeleportMenu
+
+-- Logics
+if GameConfigs.Toggles.TeleportMenu then
+	TeleportMenu = require(StarterPlayer.StarterPlayerScripts.Source.UI.TeleportMenu)
+end
 
 -- UI Components
 local OutfitViewerModel = require(StarterPlayer.StarterPlayerScripts.Source.UI.OutfitViewerModel)
@@ -21,7 +31,6 @@ local SaveConfirm = require(StarterPlayer.StarterPlayerScripts.Source.UI.SaveCon
 local Donates = require(StarterPlayer.StarterPlayerScripts.Source.UI.Donates)
 local Likes = require(StarterPlayer.StarterPlayerScripts.Source.UI.Likes)
 local Warn = require(StarterPlayer.StarterPlayerScripts.Source.UI.Warn)
-local TeleportMenu = require(StarterPlayer.StarterPlayerScripts.Source.UI.TeleportMenu)
 local GroupReward = require(StarterPlayer.StarterPlayerScripts.Source.UI.GroupReward)
 
 -- Variables
@@ -37,7 +46,7 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 local root = ReactRoblox.createRoot(screenGui)
 
 local function AppRouter()
-	return React.createElement(UIContextProvider, {}, {
+	local children = {
 		React.createElement(LeftButtons),
 		React.createElement(RightButtons),
 		React.createElement(OutfitViewerModel),
@@ -49,9 +58,14 @@ local function AppRouter()
 		React.createElement(Donates),
 		React.createElement(Likes),
 		React.createElement(Warn),
-		React.createElement(TeleportMenu),
 		React.createElement(GroupReward),
-	})
+	}
+
+	if GameConfigs.Toggles.TeleportMenu then
+		table.insert(children, React.createElement(TeleportMenu))
+	end
+
+	return React.createElement(UIContextProvider, {}, children)
 end
 
 root:render(React.createElement(AppRouter))

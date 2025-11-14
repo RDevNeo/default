@@ -10,7 +10,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
 local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
-local Net = require(ReplicatedStorage.Packages.Net)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 -- Context
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
@@ -24,7 +24,7 @@ GroupReward:setLabel("Rewards")
 GroupReward:setName("Rewards")
 
 local function GroupRewardBody()
-	local groupId = 995190819
+	local groupId = GameConfigs.Others.GROUP_ID
 	local info = GroupService:GetGroupInfoAsync(groupId)
 	local groupName = info.Name
 	local groupIcon = info.EmblemUrl

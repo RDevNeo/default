@@ -9,8 +9,8 @@ local Colors = require(StarterPlayer.StarterPlayerScripts.Source.UI.Colors)
 local React = require(ReplicatedStorage.Packages.React)
 local useUIContext = require(StarterPlayer.StarterPlayerScripts.Source.UIContext.Context).useUIContext
 local Signals = require(StarterPlayer.StarterPlayerScripts.Source.CommsInit.Module)
-local Net = require(ReplicatedStorage.Packages.Net)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 -- Variables
 local player = Players.LocalPlayer
@@ -108,7 +108,7 @@ local function ShopApp()
 
 	React.useEffect(function()
 		local musicSound: Sound = ReplicatedStorage:WaitForChild("BackgroundSound")
-		local soundId: number = Net:Invoke("GetMusicID")
+		local soundId: number = GameConfigs.Others.DEFAULT_MUSIC_ID
 
 		if not soundId or soundId == 0 then
 			return warn("Sound id not configured.")
@@ -129,7 +129,7 @@ local function ShopApp()
 
 	React.useEffect(function()
 		if run then
-			Humanoid.WalkSpeed = Net:Invoke("GetRunConfig")
+			Humanoid.WalkSpeed = GameConfigs.Others.RUN_SPEED
 		else
 			Humanoid.WalkSpeed = 16
 		end

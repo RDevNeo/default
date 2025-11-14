@@ -17,6 +17,7 @@ local function addGlobalMetric(metric: string, playerUserId: number, amount: num
 end
 
 local function getGlobalTop(metric: string, n: number)
+	task.wait(5)
 	local global = DataManager.GlobalMetrics
 	if not global then
 		return {}

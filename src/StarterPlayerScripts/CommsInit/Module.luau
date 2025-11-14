@@ -38,9 +38,6 @@ return {
 
 	-- Internal Remotes Functions
 	ProfileLoaded = Net:RemoteEvent("ProfileLoaded"),
-	GetMusicID = Net:RemoteFunction("GetMusicID"),
-	GetPlayerModelRange = Net:RemoteFunction("GetPlayerModelRange"),
-	GetRunConfig = Net:RemoteFunction("GetRunConfig"),
 	GetDonatedValue = Net:RemoteFunction("GetDonatedValue"),
 	GetIntValues = Net:RemoteFunction("GetIntValues"),
 	GetCart = Net:RemoteFunction("GetCart"),

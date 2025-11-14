@@ -466,11 +466,13 @@ local function SaveToRoblox(props: { onSaveButton: () -> () }): Frame?
 
 		Desc = React.createElement("TextLabel", {
 			Position = UDim2.fromScale(0.5, 0.09),
-			Size = UDim2.fromScale(0.8, 0.05),
+			Size = UDim2.fromScale(0.8, 0.03),
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Font = Enum.Font.FredokaOne,
 			TextScaled = true,
+			TextColor3 = Colors.textColor,
+			Text = "Items that you dont own, wont be saved in your outfit.",
 		}),
 
 		Footer = React.createElement("Frame", {

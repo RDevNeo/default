@@ -8,8 +8,13 @@ OutfitHelper = require(ReplicatedStorage.Helpers.OutfitHelper)
 local DataManager = require(ServerStorage.Source.Datastore.DataManager)
 local Net = require(ReplicatedStorage.Packages.Net)
 local _InstanceCreator = require(ServerStorage.Source.InstancesCreator)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 type Outfit = OutfitsMT.Outfit
+
+type Donates = {
+	[string]: number,
+}
 
 local ownershipCache = {}
 local originalDesc = {}
@@ -36,21 +41,15 @@ local function checkOwnershipAsync(player, ids)
 end
 
 local function IntHelpers()
-	local Donates = ServerStorage:FindFirstChild("Configuration"):FindFirstChild("Donates") :: Folder
-	if not Donates then
-		return {}
-	end
-
+	local Donates: Donates = GameConfigs.Donates
 	local result = {}
 
-	for _, int in ipairs(Donates:GetChildren()) do
-		if int:IsA("IntValue") then
-			table.insert(result, {
-				name = int.Name,
-				id = int.Value,
-				amount = tonumber(int.Name:match("%d+")),
-			})
-		end
+	for name, value in pairs(Donates) do
+		table.insert(result, {
+			name = name,
+			id = value,
+			amount = tonumber(name:match("%d+")),
+		})
 	end
 
 	table.sort(result, function(a, b)
@@ -216,18 +215,6 @@ Net:Handle("GetIntValues", function(player)
 	return IntHelpers()
 end)
 
-Net:Handle("GetRunConfig", function(player)
-	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("RUN_SPEED").Value
-end)
-
-Net:Handle("GetPlayerModelRange", function(player)
-	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("PLAYER_MODEL_RANGE").Value
-end)
-
-Net:Handle("GetMusicID", function(player)
-	return ServerStorage:FindFirstChild("Configuration"):FindFirstChild("DEFAULT_MUSIC_ID").Value
-end)
-
 Net:Handle("GetModelByCode", function(player, code: string)
 	local outfits = OutfitsMT:GetAllOutfits()
 
@@ -246,7 +233,7 @@ Net:Handle("GetOutfitLikes", function(player, code: string)
 end)
 
 Net:Handle("GetGamesIds", function(player: Player)
-	local groupId = 995190819
+	local groupId = GameConfigs.Others.GROUP_ID
 
 	local success, result = pcall(function()
 		return HttpService:GetAsync(`https://games.roproxy.com/v2/groups/{groupId}/gamesV2`)

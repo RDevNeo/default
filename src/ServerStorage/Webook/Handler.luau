@@ -4,9 +4,11 @@ local module = {}
 local GroupService = game:GetService("GroupService")
 local ServerStorage = game:GetService("ServerStorage")
 local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Modules
+-- Dependencies
 local SendMessage = require(ServerStorage.Source.Webook.SendMessage)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 -- Constants
 local ALL_SALES_WEBHOOK_URL =
@@ -31,21 +33,7 @@ local isValidDiscordWebhookUrl = function(url: string): boolean
 end
 
 local getWebhookURL = function(): string
-	local WebhookConfiguration: Instance? = ServerStorage:WaitForChild("Configuration")
-		:WaitForChild("NotifyPurchaseWebhookURL")
-	if not WebhookConfiguration then
-		return error(
-			'Missing Webhook Configuration, add a "NotifyPurchaseWebhookURL" StringValue in the Configuration folder at the Server Storage.'
-		)
-	end
-
-	if not WebhookConfiguration:IsA("StringValue") then
-		return error(
-			'Webhook Configuration is not a StringValue, add a "NotifyPurchaseWebhookURL" StringValue in the Configuration folder at the Server Storage.'
-		)
-	end
-
-	local webhookURL = WebhookConfiguration.Value
+	local webhookURL = GameConfigs.Others.NotifyPurchaseWebhookURL
 
 	if webhookURL == "" then
 		return error(

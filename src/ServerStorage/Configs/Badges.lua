@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 -- Dependencies
 local Configuration = require(ServerStorage.Source.Configs.Configuration)
 local InternalEnum = require(ServerStorage.Source.Configs.InternalEnum)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 local module = {}
 
@@ -36,7 +37,7 @@ module.Award = function(player: Player, badgeName: string): boolean?
 end
 
 module.Init = function()
-	local targetGroupId = ServerStorage.Configuration.GROUP_ID.Value
+	local targetGroupId = GameConfigs.Others.GROUP_ID
 	local allowedRanks = { 254, 255 }
 
 	local function onPlayerAdded(player: Player)

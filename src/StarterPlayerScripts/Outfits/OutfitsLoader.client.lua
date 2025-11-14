@@ -3,12 +3,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-
--- Dependencies
-local Net = require(ReplicatedStorage.Packages.Net)
+local GameConfigs = require(ReplicatedStorage.GameConfigs)
 
 local DEFAULT_INBOUND_RADIUS = 75
-local DEFAULT_MODEL_RANGE = Net:Invoke("GetPlayerModelRange")
+local DEFAULT_MODEL_RANGE = GameConfigs.Others.PLAYER_MODEL_RANGE
 local DEFAULT_HYSTERESIS_BUFFER = 2
 local DEFAULT_UPDATE_INTERVAL = 0.1
 local DEFAULT_CHUNK_SIZE = 50

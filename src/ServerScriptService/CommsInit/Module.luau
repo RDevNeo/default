@@ -34,9 +34,6 @@ local signals = {
 	AnnouncePurchase = Net:RemoteEvent("AnnouncePurchase"),
 
 	-- Remotes Functions
-	GetMusicID = Net:RemoteFunction("GetMusicID"),
-	GetPlayerModelRange = Net:RemoteFunction("GetPlayerModelRange"),
-	GetRunConfig = Net:RemoteFunction("GetRunConfig"),
 	GetDonatedValue = Net:RemoteFunction("GetDonatedValue"),
 	GetIntValues = Net:RemoteFunction("GetIntValues"),
 	GetCart = Net:RemoteFunction("GetCart"),
